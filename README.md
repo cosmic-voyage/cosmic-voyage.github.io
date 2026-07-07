@@ -8,6 +8,7 @@ An interactive journey through the universe — from Earth's orbit to the edge o
 - 39 clickable objects, each with real NASA/ESA/ESO imagery, key stats and fun facts
 - Ambient music generated live in your browser
 - 📏 Scale mode: pinch or scroll to zoom from the ISS to the observable universe, everything at true relative size
+- 🚀 3D Flight: fly from the Sun to Pluto in real 3D at [/fly/](https://cosmic-voyage.github.io/fly/)
 - Track how much of the universe you've explored
 
 Built as a single self-contained HTML file. Imagery courtesy of NASA, ESA/Hubble, and ESO.

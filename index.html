@@ -245,6 +245,7 @@
 
   /* ---------- Scale mode ---------- */
   #btn-mode { position: fixed; bottom: 84px; right: 30px; z-index: 10; }
+  #btn-fly { position: fixed; bottom: 138px; right: 30px; z-index: 10; text-decoration: none; }
   #scaleSpace {
     position: fixed; inset: 0; z-index: 1; display: none;
     touch-action: none; overflow: hidden;
@@ -288,6 +289,7 @@
     #btn-surprise { bottom: 92px; right: 16px; }
     #btn-sound { bottom: 92px; left: 16px; }
     #btn-mode { bottom: 148px; right: 16px; }
+    #btn-fly { bottom: 204px; right: 16px; }
     #hud-nav { bottom: 20px; gap: 10px; }
     .nav-btn { padding: 11px 16px; font-size: 13px; }
     #panel h2 { font-size: 25px; }
@@ -328,6 +330,7 @@
 <button class="nav-btn" id="btn-surprise">🎲 Surprise me</button>
 <button class="nav-btn" id="btn-sound" aria-label="Toggle music">🔊 Music</button>
 <button class="nav-btn" id="btn-mode" title="See the true scale of the universe">📏 Scale</button>
+<a class="nav-btn" id="btn-fly" href="fly/" title="Fly through the solar system in 3D">🚀 3D Flight</a>
 
 <div id="scaleSpace"></div>
 <div id="scale-hud">
@@ -357,6 +360,7 @@
   <p>Travel from Earth's orbit to the edge of the observable universe. Along the way, click on planets, stars, nebulae and stranger things to uncover the astonishing facts behind them. How much of the cosmos can you explore?</p>
   <button class="nav-btn primary" id="btn-begin">🚀 Begin the journey</button>
   <p style="margin-top:22px; font-size:12px; letter-spacing:.2em; text-transform:uppercase; color:var(--dim);">🎧 Best experienced with sound on</p>
+  <p style="margin-top:14px; font-size:12px; letter-spacing:.15em; text-transform:uppercase;"><a href="fly/" style="color:var(--dim);">or take the 🚀 3D flight through the solar system →</a></p>
 </div>
 
 <script>
