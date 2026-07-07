@@ -19,8 +19,13 @@ const ctx = {};
 vm.createContext(ctx);
 vm.runInContext(stagesSrc + "\n" + imagesSrc + "\nthis.STAGES = STAGES; this.IMAGES = IMAGES;", ctx);
 
+// Every object referenced by the 3D flight (solar system + deep space).
 const WANT = ["The Sun", "Mercury", "Venus", "Earth", "The Moon", "Mars",
-              "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"];
+              "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto",
+              "Proxima Centauri", "TRAPPIST-1", "Sirius", "Vega", "Betelgeuse",
+              "Antares", "A Pulsar", "Orion Nebula", "Pillars of Creation",
+              "Crab Nebula", "Sagittarius A*", "The Milky Way", "Andromeda",
+              "The Observable Universe"];
 const out = {};
 for (const stage of ctx.STAGES) {
   for (const o of stage.objects) {

@@ -56,15 +56,15 @@
     border: 1px solid var(--line); border-radius: 999px;
     padding: 12px 22px; font-size: 14px; font-weight: 600; letter-spacing: .06em;
     cursor: pointer; transition: all .25s ease; backdrop-filter: blur(8px);
-    text-decoration: none; display: inline-block; font-family: inherit;
+    text-decoration: none; display: inline-block; font-family: inherit; white-space: nowrap;
   }
   .nav-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 24px rgba(125,211,252,.25); }
   .nav-btn:disabled { opacity: .3; cursor: default; }
   .nav-btn.primary { background: linear-gradient(135deg, rgba(125,211,252,.18), rgba(192,132,252,.18)); }
 
   #hud-nav { bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 18px; }
-  #dots { display: flex; gap: 8px; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(143,163,200,.35); border: none; cursor: pointer; padding: 0; transition: all .3s ease; }
+  #dots { display: flex; gap: 6px; flex-wrap: wrap; max-width: 46vw; justify-content: center; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(143,163,200,.35); border: none; cursor: pointer; padding: 0; transition: all .3s ease; }
   .dot.on { background: var(--accent); box-shadow: 0 0 10px var(--accent); transform: scale(1.3); }
   .dot:hover { background: var(--ink); }
 
@@ -136,10 +136,9 @@
     #hud-stop .sub { display: none; }
     #hud-stop .kicker { font-size: 10px; }
     #hud-top-right { right: 16px; top: 18px; }
-    #hud-nav { bottom: 20px; gap: 8px; }
-    .nav-btn { padding: 10px 13px; font-size: 12px; }
-    #dots { gap: 5px; }
-    .dot { width: 6px; height: 6px; }
+    #hud-nav { bottom: 20px; gap: 10px; }
+    .nav-btn { padding: 10px 14px; font-size: 12px; }
+    #dots { display: none; } /* 25 stops is too many dots for a phone; Prev/Next + the stop counter cover it */
     #btn-sound { bottom: 92px; left: 16px; }
     #panel h2 { font-size: 25px; }
   }
@@ -186,7 +185,7 @@
 <div id="intro">
   <div class="kicker">Cosmic Voyage presents</div>
   <h1>3D FLIGHT</h1>
-  <p>Fly from the Sun to Pluto in real 3D. Drag to look around as worlds drift past, and tap any of them to uncover its NASA imagery and fun facts. Distances are compressed for the journey — the real solar system is almost entirely empty space.</p>
+  <p>Fly from the Sun to the edge of the observable universe in real 3D — past the planets, out to the stars, through glowing nebulae, around the black hole at our galaxy's heart, and on to Andromeda. Drag to look around as it all drifts past, and tap anything to uncover its NASA imagery and fun facts. Distances and sizes are compressed for the journey — the real universe is almost entirely empty space.</p>
   <button class="nav-btn primary" id="btn-begin">🚀 Launch</button>
   <div class="backlink"><a href="../">← back to the classic journey</a></div>
 </div>
@@ -333,7 +332,7 @@ try {
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x030014);
-const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 4000);
+const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.5, 22000);
 
 scene.add(new THREE.AmbientLight(0x8899cc, 0.45));
 const sunLight = new THREE.PointLight(0xfff2d0, 0.9, 0, 0); // no decay: even, painterly lighting along the whole highway
@@ -345,7 +344,7 @@ scene.add(sunLight);
   const N = 5000, pos = new Float32Array(N * 3), col = new Float32Array(N * 3);
   for (let i = 0; i < N; i++) {
     const th = Math.random() * Math.PI * 2, ph = Math.acos(2 * Math.random() - 1);
-    const rr = 1200 + Math.random() * 1500;
+    const rr = 8000 + Math.random() * 7000;
     pos[i * 3] = rr * Math.sin(ph) * Math.cos(th);
     pos[i * 3 + 1] = rr * Math.sin(ph) * Math.sin(th);
     pos[i * 3 + 2] = rr * Math.cos(ph);
@@ -356,10 +355,10 @@ scene.add(sunLight);
   g.setAttribute("color", new THREE.BufferAttribute(col, 3));
   scene.add(new THREE.Points(g, new THREE.PointsMaterial({ size: 2.4, vertexColors: true, sizeAttenuation: false, transparent: true, opacity: .9 })));
 }
-/* A few distant nebula glows for depth */
-[["rgba(192,132,252,1)", [-700, 260, -1500], 900], ["rgba(125,211,252,1)", [900, -200, -1800], 1100],
- ["rgba(255,140,190,1)", [500, 420, -900], 700]].forEach(([col, p, s]) => {
-  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowSprite(col), transparent: true, opacity: .16, depthWrite: false }));
+/* A few very distant nebula glows for backdrop depth (kept far beyond the flight path) */
+[["rgba(192,132,252,1)", [-4200, 1400, -9000], 5200], ["rgba(125,211,252,1)", [5400, -1200, -10500], 6400],
+ ["rgba(255,140,190,1)", [3000, 2500, -8000], 4200]].forEach(([col, p, s]) => {
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowSprite(col), transparent: true, opacity: .13, depthWrite: false }));
   sp.position.set(...p); sp.scale.set(s, s, 1); scene.add(sp);
 });
 
@@ -381,38 +380,187 @@ const BODIES = [
   { name: "Pluto",    km: 2377,    pos: [-7, 1, -618],    tex: () => rockyTexture("#c9a374", "#7d5a3c", 50, { heart: "#efe3d0" }), spin: .01 },
 ];
 
+const ADD = THREE.AdditiveBlending;
 const worlds = [];
+const pickTargets = []; // meshes the raycaster tests; each carries userData.name
+function addPick(mesh, name) { mesh.userData.name = name; pickTargets.push(mesh); }
+function pickSphere(pos, r, name) { // invisible generous tap target for glow/particle objects
+  const m = new THREE.Mesh(new THREE.SphereGeometry(r * 1.15, 16, 12),
+    new THREE.MeshBasicMaterial({ visible: false }));
+  m.position.copy(pos); scene.add(m); addPick(m, name);
+}
+function glowLayers(parent, color, r, layers, mul) {
+  layers.forEach(([s, o]) => {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowSprite(color), transparent: true, opacity: o * (mul || 1), depthWrite: false, blending: ADD }));
+    sp.scale.set(r * s, r * s, 1); parent.add(sp);
+  });
+}
+
+/* ---------- Builders for the deep-space object types ---------- */
+function buildStar(b, pos) {
+  const g = new THREE.Group(); g.position.copy(pos);
+  const core = new THREE.Mesh(new THREE.SphereGeometry(b.r, 32, 24), new THREE.MeshBasicMaterial({ color: b.color }));
+  g.add(core);
+  glowLayers(g, b.glow, b.r, [[3.4, .8], [6.5, .38], [13, .15]], b.glowMul);
+  if (b.companion) { // Sirius B — a white-dwarf speck
+    const c = new THREE.Mesh(new THREE.SphereGeometry(b.r * .18, 16, 12), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+    c.position.set(b.r * 2.6, b.r * .8, 0); g.add(c);
+  }
+  if (b.planets) { // TRAPPIST-1 — a few tiny worlds hugging the star
+    for (let i = 0; i < 4; i++) {
+      const p = new THREE.Mesh(new THREE.SphereGeometry(b.r * .12, 12, 8),
+        new THREE.MeshBasicMaterial({ color: [0x9fd0ff, 0xd8a878, 0xa8b0c0, 0xc98f6a][i] }));
+      const a = i * 1.5, d = b.r * (2 + i * .7);
+      p.position.set(Math.cos(a) * d, Math.sin(a) * d * .4, Math.sin(a) * d); g.add(p);
+    }
+  }
+  scene.add(g);
+  return { group: g, spinObj: core };
+}
+function buildPulsar(b, pos) {
+  const g = new THREE.Group(); g.position.copy(pos);
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(b.r, 24, 18), new THREE.MeshBasicMaterial({ color: 0xe6ecff })));
+  const beams = new THREE.Group();
+  for (const dir of [1, -1]) {
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(b.r * 3.2, b.r * 30, 24, 1, true),
+      new THREE.MeshBasicMaterial({ color: 0x9ec6ff, transparent: true, opacity: .2, side: THREE.DoubleSide, depthWrite: false, blending: ADD }));
+    cone.position.y = dir * b.r * 15;
+    if (dir > 0) cone.rotation.x = Math.PI; // apex toward the star, wide end outward
+    beams.add(cone);
+  }
+  beams.rotation.z = .5;
+  g.add(beams);
+  glowLayers(g, "rgba(180,200,255,1)", b.r, [[7, .6], [14, .2]]);
+  scene.add(g);
+  return { group: g, spinObj: beams };
+}
+function buildNebula(b, pos) {
+  const g = new THREE.Group(); g.position.copy(pos);
+  const flat = b.pillars ? .5 : .72;
+  for (let i = 0; i < 30; i++) {
+    const col = b.colors[i % b.colors.length];
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowSprite(col), transparent: true, opacity: .1 + Math.random() * .13, depthWrite: false, blending: ADD }));
+    let rr = Math.pow(Math.random(), .5) * b.r;
+    const th = Math.random() * 6.283, ph = Math.acos(2 * Math.random() - 1);
+    let y = rr * Math.sin(ph) * Math.sin(th) * flat;
+    if (b.pillars) y = (Math.random() - .55) * b.r * 1.7; // stretch into vertical columns
+    sp.position.set(rr * Math.sin(ph) * Math.cos(th) * (b.pillars ? .5 : 1), y, rr * Math.cos(ph) * flat);
+    const s = b.r * (.5 + Math.random() * .9);
+    sp.scale.set(s, s, 1); g.add(sp);
+  }
+  const N = 130, ps = new Float32Array(N * 3);
+  for (let i = 0; i < N; i++) {
+    const rr = Math.random() * b.r, th = Math.random() * 6.283, ph = Math.acos(2 * Math.random() - 1);
+    ps[i * 3] = rr * Math.sin(ph) * Math.cos(th); ps[i * 3 + 1] = rr * Math.sin(ph) * Math.sin(th) * flat; ps[i * 3 + 2] = rr * Math.cos(ph) * flat;
+  }
+  const pg = new THREE.BufferGeometry(); pg.setAttribute("position", new THREE.BufferAttribute(ps, 3));
+  g.add(new THREE.Points(pg, new THREE.PointsMaterial({ color: 0xffffff, size: 1.7, transparent: true, opacity: .9 })));
+  scene.add(g);
+  return { group: g, spinObj: g };
+}
+function buildBlackHole(b, pos) {
+  const g = new THREE.Group(); g.position.copy(pos);
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(b.r, 32, 24), new THREE.MeshBasicMaterial({ color: 0x000000 })));
+  const ring = new THREE.Mesh(new THREE.RingGeometry(b.r * 1.15, b.r * 2.7, 128),
+    new THREE.MeshBasicMaterial({ map: ringTexture("rgba(255,150,45,A)", "rgba(255,110,30,A)"), transparent: true, side: THREE.DoubleSide, opacity: .95, depthWrite: false, blending: ADD }));
+  ring.rotation.x = -1.12; ring.rotation.z = .3; g.add(ring);
+  glowLayers(g, "rgba(255,150,50,1)", b.r, [[4.5, .4], [8, .16]]);
+  scene.add(g);
+  return { group: g, spinObj: ring };
+}
+function buildGalaxy(b, pos) {
+  const g = new THREE.Group(); g.position.copy(pos);
+  const N = 4200, ps = new Float32Array(N * 3), cs = new Float32Array(N * 3);
+  const core = new THREE.Color(b.core), arm = new THREE.Color(b.arm), arms = 2;
+  for (let i = 0; i < N; i++) {
+    const t = Math.pow(Math.random(), .6), rad = t * b.r;
+    const ang = (i % arms) * Math.PI + t * 6 + (Math.random() - .5) * (.5 + (1 - t) * 1.6);
+    const thick = (1 - t) * b.r * .1 + b.r * .012;
+    ps[i * 3] = Math.cos(ang) * rad + (Math.random() - .5) * rad * .06;
+    ps[i * 3 + 1] = (Math.random() - .5) * thick;
+    ps[i * 3 + 2] = Math.sin(ang) * rad + (Math.random() - .5) * rad * .06;
+    const c = core.clone().lerp(arm, Math.min(1, t * 1.2));
+    cs[i * 3] = c.r; cs[i * 3 + 1] = c.g; cs[i * 3 + 2] = c.b;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(ps, 3));
+  geo.setAttribute("color", new THREE.BufferAttribute(cs, 3));
+  const pts = new THREE.Points(geo, new THREE.PointsMaterial({ size: 3.4, vertexColors: true, transparent: true, opacity: .95, depthWrite: false, blending: ADD }));
+  g.add(pts);
+  glowLayers(g, b.core, b.r, [[.9, .5], [.4, .5]]);
+  g.rotation.set(b.tilt || 1.05, b.yaw || .4, 0);
+  scene.add(g);
+  return { group: g, spinObj: pts };
+}
+function buildUniverse(b, pos) {
+  const g = new THREE.Group(); g.position.copy(pos);
+  const N = 2600, ps = new Float32Array(N * 3), cs = new Float32Array(N * 3);
+  const pal = [[1, 1, 1], [.7, .8, 1], [1, .85, .7], [.8, .7, 1], [1, .75, .85]];
+  for (let i = 0; i < N; i++) {
+    const rr = Math.pow(Math.random(), .33) * b.r, th = Math.random() * 6.283, ph = Math.acos(2 * Math.random() - 1);
+    ps[i * 3] = rr * Math.sin(ph) * Math.cos(th); ps[i * 3 + 1] = rr * Math.sin(ph) * Math.sin(th); ps[i * 3 + 2] = rr * Math.cos(ph);
+    cs.set(pal[Math.floor(Math.random() * pal.length)], i * 3);
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute("position", new THREE.BufferAttribute(ps, 3));
+  geo.setAttribute("color", new THREE.BufferAttribute(cs, 3));
+  g.add(new THREE.Points(geo, new THREE.PointsMaterial({ size: 3, vertexColors: true, transparent: true, opacity: .9, depthWrite: false, blending: ADD })));
+  scene.add(g);
+  return { group: g, spinObj: g };
+}
+
+/* ---------- Deep-space objects, laid out beyond Pluto ---------- */
+const DEEP = [
+  { name: "Proxima Centauri", type: "star", pos: [6, 2, -710], r: 3.2, color: 0xff7a4a, glow: "rgba(255,110,60,1)", spin: .01 },
+  { name: "TRAPPIST-1", type: "star", pos: [-9, -2, -800], r: 3.0, color: 0xff8a54, glow: "rgba(255,130,70,1)", planets: true, spin: .01 },
+  { name: "Sirius", type: "star", pos: [10, 3, -910], r: 6, color: 0xdfeaff, glow: "rgba(190,215,255,1)", companion: true, spin: .01 },
+  { name: "Vega", type: "star", pos: [-11, 2, -1040], r: 6.2, color: 0xcfe0ff, glow: "rgba(170,205,255,1)", spin: .02 },
+  { name: "Betelgeuse", type: "star", pos: [16, -3, -1300], r: 42, color: 0xff7a3a, glow: "rgba(255,100,45,1)", glowMul: 1.3, spin: .004 },
+  { name: "Antares", type: "star", pos: [-22, 4, -1690], r: 52, color: 0xff6a34, glow: "rgba(255,95,40,1)", glowMul: 1.3, spin: .004 },
+  { name: "A Pulsar", type: "pulsar", pos: [8, 2, -1900], r: 2.4, spin: .6 },
+  { name: "Orion Nebula", type: "nebula", pos: [-16, 0, -2220], r: 95, colors: ["rgba(255,150,190,1)", "rgba(120,220,255,1)", "rgba(180,120,255,1)"], spin: .006 },
+  { name: "Pillars of Creation", type: "nebula", pos: [16, -6, -2580], r: 70, colors: ["rgba(255,190,120,1)", "rgba(150,255,220,1)", "rgba(200,120,90,1)"], pillars: true, spin: .004 },
+  { name: "Crab Nebula", type: "nebula", pos: [-16, 4, -2920], r: 82, colors: ["rgba(150,200,255,1)", "rgba(255,140,90,1)", "rgba(180,120,255,1)"], spin: .01 },
+  { name: "Sagittarius A*", type: "blackhole", pos: [10, -2, -3220], r: 18, spin: .05 },
+  { name: "The Milky Way", type: "galaxy", pos: [-46, 12, -3980], r: 300, core: "rgba(255,240,200,1)", arm: "rgba(130,170,255,1)", tilt: 1.1, yaw: .5, spin: .015 },
+  { name: "Andromeda", type: "galaxy", pos: [70, -22, -5150], r: 340, core: "rgba(255,235,205,1)", arm: "rgba(150,180,255,1)", tilt: .7, yaw: -.6, spin: .012 },
+  { name: "The Observable Universe", type: "universe", pos: [0, 0, -6400], r: 520, spin: .01 },
+];
+
+/* ---------- Build everything ---------- */
 for (const b of BODIES) {
-  const r = R(b.km);
+  const r = R(b.km), pos = new THREE.Vector3(...b.pos);
   const mat = b.emissive
     ? new THREE.MeshBasicMaterial({ map: b.tex() })
     : new THREE.MeshStandardMaterial({ map: b.tex(), roughness: .92, metalness: 0 });
   const mesh = new THREE.Mesh(new THREE.SphereGeometry(r, 48, 32), mat);
-  mesh.position.set(...b.pos);
-  mesh.userData.name = b.name;
-  scene.add(mesh);
+  mesh.position.copy(pos);
+  scene.add(mesh); addPick(mesh, b.name);
   if (b.emissive) {
-    sunLight.position.set(...b.pos);
+    sunLight.position.copy(pos);
     [[9, .9], [16, .45], [30, .18]].forEach(([s, o]) => {
-      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowSprite("rgba(255,190,80,1)"), transparent: true, opacity: o, depthWrite: false }));
-      sp.position.set(...b.pos); sp.scale.set(r * s / 4, r * s / 4, 1); scene.add(sp);
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: glowSprite("rgba(255,190,80,1)"), transparent: true, opacity: o, depthWrite: false, blending: ADD }));
+      sp.position.copy(pos); sp.scale.set(r * s / 4, r * s / 4, 1); scene.add(sp);
     });
   }
   if (b.ring) {
     const thin = b.ring === "thin";
     const ring = new THREE.Mesh(
       new THREE.RingGeometry(r * (thin ? 1.6 : 1.4), r * (thin ? 1.75 : 2.35), 96),
-      new THREE.MeshBasicMaterial({
-        map: ringTexture("rgba(230,210,160,A)", "rgba(190,170,125,A)"),
-        transparent: true, side: THREE.DoubleSide, opacity: thin ? .35 : .95, depthWrite: false,
-      })
+      new THREE.MeshBasicMaterial({ map: ringTexture("rgba(230,210,160,A)", "rgba(190,170,125,A)"), transparent: true, side: THREE.DoubleSide, opacity: thin ? .35 : .95, depthWrite: false })
     );
     ring.rotation.x = thin ? .25 : -1.25;
-    if (thin) ring.rotation.y = 1.35; // Uranus rolls on its side
-    ring.position.copy(mesh.position);
-    scene.add(ring);
+    if (thin) ring.rotation.y = 1.35;
+    ring.position.copy(pos); scene.add(ring);
   }
-  worlds.push({ ...b, r, mesh });
+  worlds.push({ name: b.name, r, pos, spinObj: mesh, spin: b.spin });
+}
+const BUILDERS = { star: buildStar, pulsar: buildPulsar, nebula: buildNebula, blackhole: buildBlackHole, galaxy: buildGalaxy, universe: buildUniverse };
+for (const b of DEEP) {
+  const pos = new THREE.Vector3(...b.pos);
+  const built = BUILDERS[b.type](b, pos);
+  pickSphere(pos, b.r, b.name);
+  worlds.push({ name: b.name, r: b.r, pos, spinObj: built.spinObj, spin: b.spin });
 }
 
 /* Asteroid belt: a drift of rocks crossing the highway between Mars and Jupiter */
@@ -430,7 +578,7 @@ for (const b of BODIES) {
    FLIGHT PATH & CAMERA
    ============================================================ */
 const stops = worlds.map((w, i) => {
-  const p = w.mesh.position;
+  const p = w.pos;
   const side = i % 2 ? -1 : 1;
   return {
     name: w.name,
@@ -526,7 +674,7 @@ addEventListener("pointerup", (e) => {
 const raycaster = new THREE.Raycaster();
 function pick(x, y) {
   raycaster.setFromCamera({ x: (x / innerWidth) * 2 - 1, y: -(y / innerHeight) * 2 + 1 }, camera);
-  const hit = raycaster.intersectObjects(worlds.map(w => w.mesh))[0];
+  const hit = raycaster.intersectObjects(pickTargets)[0];
   if (hit) openPanel(hit.object.userData.name);
 }
 
@@ -712,7 +860,7 @@ let last = performance.now();
 function animate(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
 
-  for (const w of worlds) w.mesh.rotation.y += w.spin * dt * 10;
+  for (const w of worlds) if (w.spinObj) w.spinObj.rotation.y += (w.spin || 0) * dt * 10;
 
   if (flight) {
     flight.t += dt / flight.dur;
@@ -730,20 +878,20 @@ function animate(now) {
 
   // project labels
   for (const w of worlds) {
-    v3.copy(w.mesh.position).project(camera);
-    const dist = camera.position.distanceTo(w.mesh.position);
+    v3.copy(w.pos).project(camera);
+    const dist = camera.position.distanceTo(w.pos);
     const behind = v3.z > 1;
-    if (behind || Math.abs(v3.x) > 1.1 || Math.abs(v3.y) > 1.15 || dist > 260) {
+    if (behind || Math.abs(v3.x) > 1.1 || Math.abs(v3.y) > 1.15 || dist > Math.max(300, w.r * 7)) {
       w.label.style.display = "none";
     } else {
       w.label.style.display = "block";
       const sx = (v3.x * .5 + .5) * innerWidth;
       const sy = (-v3.y * .5 + .5) * innerHeight;
-      // place the label just under the planet's disc
+      // place the label just under the object's disc
       const edge = w.r / Math.max(dist, 0.01) * (innerHeight / (2 * Math.tan(camera.fov * Math.PI / 360)));
       w.label.style.left = sx + "px";
-      w.label.style.top = Math.min(innerHeight - 30, sy + edge + 8) + "px";
-      w.label.style.opacity = Math.min(1, Math.max(.25, 1.4 - dist / 200));
+      w.label.style.top = Math.min(innerHeight - 30, sy + Math.min(edge, innerHeight * .42) + 8) + "px";
+      w.label.style.opacity = Math.min(1, Math.max(.25, 1.4 - dist / (220 + w.r * 7)));
     }
   }
   renderer.render(scene, camera);
