@@ -1915,20 +1915,75 @@ function galToEq(l, b) {
   const ra = norm360((aG + Math.atan2(Math.cos(lb) * Math.sin(dl), Math.cos(dG) * Math.sin(lb) - Math.sin(dG) * Math.cos(lb) * Math.cos(dl))) * R2D);
   return { ra: ra / 15, dec: dec * R2D };
 }
-const MW_PTS = [];
-for (let l = 0; l < 360; l += 4) {
-  const w = 0.5 + 2.4 * Math.exp(-Math.pow((((l + 180) % 360) - 180) / 55, 2));
-  MW_PTS.push({ ...galToEq(l, 0), w });
-}
 const MW_CORE = galToEq(0, 0);
-const mwSprite = (() => {
+// A textured Milky Way: layered irregular cloud blobs (warm near the core bulge),
+// grainy star-dust, and the Great Rift dark lane — all placed with deterministic
+// hash jitter so the band looks mottled but never flickers.
+function glowSpriteMW(color) {
   const c = document.createElement("canvas"); c.width = c.height = 64;
   const g = c.getContext("2d");
   const rg = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-  rg.addColorStop(0, "rgba(195,208,255,1)"); rg.addColorStop(1, "rgba(195,208,255,0)");
+  rg.addColorStop(0, color); rg.addColorStop(1, color.replace(",1)", ",0)"));
   g.fillStyle = rg; g.fillRect(0, 0, 64, 64);
   return c;
-})();
+}
+const mwCool = glowSpriteMW("rgba(190,205,255,1)");
+const mwWarm = glowSpriteMW("rgba(255,224,186,1)");
+const mwDark = glowSpriteMW("rgba(6,4,18,1)");
+const MW_BLOBS = [], MW_DARK = [], MW_DUST = [];
+{
+  const hash = n => { const s = Math.sin(n * 127.1) * 43758.5453; return s - Math.floor(s); };
+  for (let l = 0; l < 360; l += 4) {
+    const core = Math.exp(-Math.pow((((l + 180) % 360) - 180) / 48, 2)); // 1 at the core, 0 far away
+    const rows = 2 + Math.round(core * 3);
+    for (let k = 0; k < rows; k++) {
+      MW_BLOBS.push({
+        ...galToEq(l + hash(l * 3.1 + k * 5.7) * 4, (hash(l * 7.3 + k * 13.7) - 0.5) * (8 + core * 16)),
+        r: (46 + hash(l * 9.1 + k) * 55) * (0.75 + core * 0.7),
+        a: (0.028 + hash(l * 4.7 + k * 2.3) * 0.035) * (0.55 + core * 1.5),
+        warm: core > 0.4 && hash(l * 11.9 + k) < 0.65,
+      });
+    }
+    const nd = 1 + Math.round(core * 3 + hash(l * 6.1) * 1.5);
+    for (let k = 0; k < nd; k++) {
+      MW_DUST.push({
+        ...galToEq(l + hash(l * 23.3 + k * 7.7) * 4, (hash(l * 17.9 + k * 29.1) - 0.5) * (11 + core * 18)),
+        a: 0.15 + hash(l * 5.3 + k * 41.7) * 0.45,
+      });
+    }
+  }
+  // The Great Rift: the dark dust lane splitting the band from Cygnus toward the core
+  for (let l = -8; l < 62; l += 2) {
+    MW_DARK.push({
+      ...galToEq(l + hash(l * 2.7) * 2, 2.5 + (hash(l * 3.9) - 0.5) * 3.5),
+      r: 40 + hash(l * 8.3) * 45,
+      a: 0.10 + hash(l * 12.1) * 0.10,
+    });
+  }
+}
+function drawMilkyWay(x, plot, scale, day) {
+  const dim = day ? 0.25 : 1;
+  for (const b of MW_BLOBS) {
+    const p = plot(b.ra, b.dec); if (!p) continue;
+    const rr = b.r * scale;
+    x.globalAlpha = b.a * dim;
+    x.drawImage(b.warm ? mwWarm : mwCool, p[0] - rr, p[1] - rr, rr * 2, rr * 2);
+  }
+  for (const d of MW_DARK) {
+    const p = plot(d.ra, d.dec); if (!p) continue;
+    const rr = d.r * scale;
+    x.globalAlpha = d.a * dim;
+    x.drawImage(mwDark, p[0] - rr, p[1] - rr, rr * 2, rr * 2);
+  }
+  const dot = scale > 0.5 ? 1.5 : 1;
+  x.fillStyle = "#cdd8f5";
+  for (const s of MW_DUST) {
+    const p = plot(s.ra, s.dec); if (!p) continue;
+    x.globalAlpha = s.a * dim * 0.8;
+    x.fillRect(p[0], p[1], dot, dot);
+  }
+  x.globalAlpha = 1;
+}
 
 // Sky objects that link to a fact panel in the journey (tap to open)
 const SKY_PANEL = {
@@ -1990,15 +2045,11 @@ function drawSkyMap() {
     const lx = cx - (Rmax + 9) * Math.sin(az * D2R), ly = cy - (Rmax + 9) * Math.cos(az * D2R);
     x.fillText(lab, lx, ly);
   }
-  // the Milky Way band (soft glow along the galactic equator, brightest at the core)
-  for (const pt of MW_PTS) {
-    const h = eqToHoriz(pt.ra, pt.dec, jd, lat, lon); if (h.alt < 0) continue;
-    const [mx, my] = projSky(cx, cy, Rmax, h.alt, h.az);
-    const rr = 13 + pt.w * 6;
-    x.globalAlpha = (day ? .012 : .045) * pt.w;
-    x.drawImage(mwSprite, mx - rr, my - rr, rr * 2, rr * 2);
-  }
-  x.globalAlpha = 1;
+  // the Milky Way band (textured: clouds, core bulge, dust grain, Great Rift)
+  drawMilkyWay(x, (ra, dec) => {
+    const h = eqToHoriz(ra, dec, jd, lat, lon);
+    return h.alt < 0 ? null : projSky(cx, cy, Rmax, h.alt, h.az);
+  }, 0.22, day);
   // constellation lines (drawn under the stars)
   x.strokeStyle = day ? "rgba(125,160,220,.1)" : "rgba(120,175,255,.2)"; x.lineWidth = 1;
   for (const [a, b] of CONST_LINES) {
@@ -2137,16 +2188,12 @@ function drawSV() {
     if (fwd <= 0.04) return null;
     return [cx + dot3(v, Rt) / fwd * f, cy - dot3(v, Up) / fwd * f, fwd];
   };
-  // the Milky Way band (drawn before the ground so the horizon occludes it)
+  // the Milky Way band (textured; drawn before the ground so the horizon occludes it)
   const jdv = jdNow();
-  for (const pt of MW_PTS) {
-    const hh = eqToHoriz(pt.ra, pt.dec, jdv, skyLoc.lat, skyLoc.lon); if (hh.alt < -4) continue;
-    const p = project(hh.az, hh.alt); if (!p) continue;
-    const rr = 55 + pt.w * 28;
-    x.globalAlpha = (day ? .014 : .055) * pt.w;
-    x.drawImage(mwSprite, p[0] - rr, p[1] - rr, rr * 2, rr * 2);
-  }
-  x.globalAlpha = 1;
+  drawMilkyWay(x, (ra, dec) => {
+    const hh = eqToHoriz(ra, dec, jdv, skyLoc.lat, skyLoc.lon);
+    return hh.alt < -4 ? null : project(hh.az, hh.alt);
+  }, 1, day);
   // horizon + ground
   const horizon = [];
   for (let d = -140; d <= 140; d += 3) { const p = project(norm360(svAz + d), 0); if (p) horizon.push(p); }
@@ -2285,13 +2332,28 @@ function updatePointBtn() {
   b.classList.toggle("active", svMode === "point");
   b.textContent = svMode === "point" ? "📱 Point mode: on" : "📱 Point mode";
 }
+/* Pointing from the FULL orientation matrix (Z-X'-Y'' intrinsic), not compass+tilt:
+   webkitCompassHeading goes haywire when the phone tilts up steeply (the "swerve"),
+   while the matrix stays smooth at any angle. The compass is used ONCE, to anchor
+   north; drag still fine-tunes svHeadOff. Validated in scratchpad: smooth to alt 85°. */
+let svAnchored = false;
 function svOrient(e) {
-  if (svMode !== "point") return;
-  let heading = (typeof e.webkitCompassHeading === "number") ? e.webkitCompassHeading
-              : (e.alpha != null ? 360 - e.alpha : null);
-  if (heading == null || e.beta == null) return;
-  svAzT = norm360(heading + svHeadOff);
-  svAltT = Math.max(-8, Math.min(90, e.beta - 90)); // phone vertical→horizon, tilted back→zenith
+  if (svMode !== "point" || e.alpha == null || e.beta == null || e.gamma == null) return;
+  const a = e.alpha * D2R, b = e.beta * D2R, g = e.gamma * D2R;
+  const sa = Math.sin(a), ca = Math.cos(a), sb = Math.sin(b), cb = Math.cos(b), sg = Math.sin(g), cg = Math.cos(g);
+  // device back-camera direction (-Z) in the earth frame (x=E, y=N, z=Up)
+  const px = -ca * sg - sa * sb * cg;
+  const py = -sa * sg + ca * sb * cg;
+  const pz = -cb * cg;
+  const azm = norm360(Math.atan2(px, py) * R2D);
+  const altm = Math.asin(Math.max(-1, Math.min(1, pz))) * R2D;
+  if (!svAnchored) {
+    // anchor matrix yaw to the real compass once (iOS's alpha is arbitrary-referenced)
+    if (typeof e.webkitCompassHeading === "number") svHeadOff = norm360(e.webkitCompassHeading - azm) ;
+    svAnchored = true;
+  }
+  svAzT = norm360(azm + svHeadOff);
+  svAltT = Math.max(-40, Math.min(89.5, altm));
 }
 async function svTogglePoint() {
   if (svMode === "point") { svMode = "drag"; window.removeEventListener("deviceorientation", svOrient, true); updatePointBtn(); showToast("Back to drag mode"); return; }
@@ -2302,7 +2364,7 @@ async function svTogglePoint() {
     }
   } catch (e) { showToast("📱 This device won't share motion — drag to look instead"); return; }
   if (!window.DeviceOrientationEvent) { showToast("📱 No motion sensors here — drag to look instead"); return; }
-  svHeadOff = 0;
+  svHeadOff = 0; svAnchored = false;
   window.addEventListener("deviceorientation", svOrient, true);
   svMode = "point"; updatePointBtn();
   document.getElementById("sv-hint").classList.remove("gone");
