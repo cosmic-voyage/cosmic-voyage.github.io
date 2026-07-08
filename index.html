@@ -175,9 +175,9 @@
   .mode-item b { display: block; font-size: 14px; font-weight: 700; }
   .mode-item em { display: block; font-size: 11.5px; color: var(--dim); font-style: normal; margin-top: 2px; line-height: 1.35; }
 
-  /* ---------- Info panel ---------- */
+  /* ---------- Info panel (z above the immersive sky view so taps there can open it) ---------- */
   #panel {
-    position: fixed; top: 0; right: 0; bottom: 0; z-index: 20;
+    position: fixed; top: 0; right: 0; bottom: 0; z-index: 38;
     width: min(460px, 100vw);
     background: var(--panel);
     border-left: 1px solid var(--line);
@@ -555,7 +555,7 @@
     <div id="sv-info"></div>
     <button class="nav-btn" id="sv-exit">✕ Exit</button>
   </div>
-  <div id="sv-hint">Drag to look around the sky</div>
+  <div id="sv-hint">Drag to look around · tap named objects to learn more</div>
   <div id="sv-bottom">
     <button class="nav-btn" id="sv-point">📱 Point mode</button>
   </div>
@@ -1446,10 +1446,11 @@ addEventListener("touchend", e => {
 
 addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
-    if (panel.classList.contains("open")) closePanel();
-    else if (document.getElementById("tonight").classList.contains("open")) closeTonight();
-    else if (calMode) setCalMode(false);
-    else if (scaleMode) setScaleMode(false);
+    // stopImmediatePropagation so the sky view's own Escape handler doesn't ALSO fire
+    if (panel.classList.contains("open")) { closePanel(); e.stopImmediatePropagation(); }
+    else if (document.getElementById("tonight").classList.contains("open")) { closeTonight(); e.stopImmediatePropagation(); }
+    else if (calMode) { setCalMode(false); e.stopImmediatePropagation(); }
+    else if (scaleMode) { setScaleMode(false); e.stopImmediatePropagation(); }
     return;
   }
   if (calMode) {
@@ -1872,34 +1873,74 @@ const STARS = [
   ["Mirfak",3.4054,49.861,1.79,0],["Algol",3.1361,40.956,2.12,0],["Diphda",0.7265,-17.987,2.04,0],
   ["Peacock",20.4275,-56.735,1.94,0],["Rasalhague",17.5822,12.560,2.08,0],["Kochab",14.8451,74.156,2.08,0],
 ];
-// Constellation stick figures — [starA, starB] pairs (both must be up to draw the line)
-const CONST_LINES = [
-  // Orion
-  ["Betelgeuse","Bellatrix"],["Bellatrix","Mintaka"],["Betelgeuse","Alnitak"],["Mintaka","Alnilam"],
-  ["Alnilam","Alnitak"],["Mintaka","Rigel"],["Alnitak","Saiph"],
-  // Big Dipper (Ursa Major)
-  ["Dubhe","Merak"],["Merak","Phecda"],["Phecda","Megrez"],["Megrez","Dubhe"],
-  ["Megrez","Alioth"],["Alioth","Mizar"],["Mizar","Alkaid"],
-  // Cassiopeia W
-  ["Caph","Schedar"],["Schedar","Gamma Cas"],["Gamma Cas","Ruchbah"],["Ruchbah","Segin"],
-  // Southern Cross
-  ["Acrux","Gacrux"],["Mimosa","Delta Cru"],
-  // Scorpius
-  ["Acrab","Dschubba"],["Dschubba","Antares"],["Antares","Epsilon Sco"],["Epsilon Sco","Sargas"],
-  ["Sargas","Shaula"],["Shaula","Kaus Aus"],
-  // Summer Triangle
-  ["Vega","Deneb"],["Deneb","Altair"],["Altair","Vega"],
-  // Cygnus (Northern Cross)
-  ["Deneb","Sadr"],["Sadr","Albireo"],["Gienah Cyg","Sadr"],["Delta Cyg","Sadr"],
-  // Leo
-  ["Regulus","Algieba"],["Algieba","Zosma"],["Zosma","Denebola"],["Denebola","Regulus"],
-  // Gemini
-  ["Castor","Pollux"],
-  // Great Square of Pegasus + Andromeda chain
-  ["Markab","Scheat"],["Scheat","Alpheratz"],["Alpheratz","Algenib"],["Algenib","Markab"],
-  ["Alpheratz","Mirach"],["Mirach","Almach"],
+// Constellations as named stick figures — each gets a label at its centroid, and
+// (where one exists) a link to its fact panel in the journey.
+const CONSTELLATIONS = [
+  { name: "Orion", panel: "Orion the Hunter", lines: [["Betelgeuse","Bellatrix"],["Bellatrix","Mintaka"],["Betelgeuse","Alnitak"],["Mintaka","Alnilam"],["Alnilam","Alnitak"],["Mintaka","Rigel"],["Alnitak","Saiph"]] },
+  { name: "Big Dipper", panel: "The Big Dipper", lines: [["Dubhe","Merak"],["Merak","Phecda"],["Phecda","Megrez"],["Megrez","Dubhe"],["Megrez","Alioth"],["Alioth","Mizar"],["Mizar","Alkaid"]] },
+  { name: "Cassiopeia", panel: "Cassiopeia", lines: [["Caph","Schedar"],["Schedar","Gamma Cas"],["Gamma Cas","Ruchbah"],["Ruchbah","Segin"]] },
+  { name: "Southern Cross", panel: "The Southern Cross", lines: [["Acrux","Gacrux"],["Mimosa","Delta Cru"]] },
+  { name: "Scorpius", panel: "Scorpius", lines: [["Acrab","Dschubba"],["Dschubba","Antares"],["Antares","Epsilon Sco"],["Epsilon Sco","Sargas"],["Sargas","Shaula"]] },
+  { name: "Sagittarius", panel: null, lines: [["Shaula","Kaus Aus"],["Kaus Aus","Nunki"]] },
+  { name: "Summer Triangle", panel: null, lines: [["Vega","Deneb"],["Deneb","Altair"],["Altair","Vega"]] },
+  { name: "Cygnus", panel: null, lines: [["Deneb","Sadr"],["Sadr","Albireo"],["Gienah Cyg","Sadr"],["Delta Cyg","Sadr"]] },
+  { name: "Leo", panel: null, lines: [["Regulus","Algieba"],["Algieba","Zosma"],["Zosma","Denebola"],["Denebola","Regulus"]] },
+  { name: "Gemini", panel: null, lines: [["Castor","Pollux"]] },
+  { name: "Pegasus", panel: null, lines: [["Markab","Scheat"],["Scheat","Alpheratz"],["Alpheratz","Algenib"],["Algenib","Markab"],["Alpheratz","Mirach"],["Mirach","Almach"]] },
 ];
+const CONST_LINES = CONSTELLATIONS.flatMap(c => c.lines);
+for (const c of CONSTELLATIONS) c.stars = [...new Set(c.lines.flat())];
 const STAR_POS = {}; for (const s of STARS) STAR_POS[s[0]] = [s[1], s[2]];
+
+// Centroid of a constellation's above-horizon stars, as an az/alt direction
+function constLabelPos(c, jd, lat, lon) {
+  let vx = 0, vy = 0, vz = 0, up = 0;
+  for (const s of c.stars) {
+    const p = STAR_POS[s]; if (!p) continue;
+    const h = eqToHoriz(p[0], p[1], jd, lat, lon); if (h.alt < 0) continue;
+    up++;
+    const v = dirVec(h.az, h.alt); vx += v[0]; vy += v[1]; vz += v[2];
+  }
+  if (up < Math.max(2, Math.ceil(c.stars.length * 0.6))) return null;
+  const m = Math.hypot(vx, vy, vz) || 1;
+  return { az: norm360(Math.atan2(vx / m, vy / m) * R2D), alt: Math.asin(vz / m) * R2D };
+}
+
+// The Milky Way band: points along the galactic equator, brightest toward the core.
+// galToEq validated in scratchpad against the galactic centre, NGP, Deneb, Acrux, Hadar.
+function galToEq(l, b) {
+  const aG = 192.85948 * D2R, dG = 27.12825 * D2R, lNCP = 122.93192;
+  const lb = b * D2R, dl = (lNCP - l) * D2R;
+  const dec = Math.asin(Math.sin(dG) * Math.sin(lb) + Math.cos(dG) * Math.cos(lb) * Math.cos(dl));
+  const ra = norm360((aG + Math.atan2(Math.cos(lb) * Math.sin(dl), Math.cos(dG) * Math.sin(lb) - Math.sin(dG) * Math.cos(lb) * Math.cos(dl))) * R2D);
+  return { ra: ra / 15, dec: dec * R2D };
+}
+const MW_PTS = [];
+for (let l = 0; l < 360; l += 4) {
+  const w = 0.5 + 2.4 * Math.exp(-Math.pow((((l + 180) % 360) - 180) / 55, 2));
+  MW_PTS.push({ ...galToEq(l, 0), w });
+}
+const MW_CORE = galToEq(0, 0);
+const mwSprite = (() => {
+  const c = document.createElement("canvas"); c.width = c.height = 64;
+  const g = c.getContext("2d");
+  const rg = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  rg.addColorStop(0, "rgba(195,208,255,1)"); rg.addColorStop(1, "rgba(195,208,255,0)");
+  g.fillStyle = rg; g.fillRect(0, 0, 64, 64);
+  return c;
+})();
+
+// Sky objects that link to a fact panel in the journey (tap to open)
+const SKY_PANEL = {
+  Sun: "The Sun", Moon: "The Moon", Mercury: "Mercury", Venus: "Venus", Mars: "Mars",
+  Jupiter: "Jupiter", Saturn: "Saturn",
+  Antares: "Antares", Vega: "Vega", Sirius: "Sirius", Betelgeuse: "Betelgeuse",
+  Polaris: "Polaris", "Alpha Cen": "Proxima Centauri",
+  "Andromeda Gal.": "Andromeda", "Orion Nebula": "Orion Nebula",
+  "Milky Way": "The Milky Way",
+  Orion: "Orion the Hunter", "Big Dipper": "The Big Dipper", Cassiopeia: "Cassiopeia",
+  "Southern Cross": "The Southern Cross", Scorpius: "Scorpius",
+};
 // Famous deep-sky objects — [name, RA h, Dec deg, kind]
 const DEEPSKY = [
   ["Pleiades", 3.790, 24.117, "cluster"], ["Orion Nebula", 5.588, -5.391, "nebula"],
@@ -1949,6 +1990,15 @@ function drawSkyMap() {
     const lx = cx - (Rmax + 9) * Math.sin(az * D2R), ly = cy - (Rmax + 9) * Math.cos(az * D2R);
     x.fillText(lab, lx, ly);
   }
+  // the Milky Way band (soft glow along the galactic equator, brightest at the core)
+  for (const pt of MW_PTS) {
+    const h = eqToHoriz(pt.ra, pt.dec, jd, lat, lon); if (h.alt < 0) continue;
+    const [mx, my] = projSky(cx, cy, Rmax, h.alt, h.az);
+    const rr = 13 + pt.w * 6;
+    x.globalAlpha = (day ? .012 : .045) * pt.w;
+    x.drawImage(mwSprite, mx - rr, my - rr, rr * 2, rr * 2);
+  }
+  x.globalAlpha = 1;
   // constellation lines (drawn under the stars)
   x.strokeStyle = day ? "rgba(125,160,220,.1)" : "rgba(120,175,255,.2)"; x.lineWidth = 1;
   for (const [a, b] of CONST_LINES) {
@@ -1957,6 +2007,20 @@ function drawSkyMap() {
     if (ha.alt < 0 || hb.alt < 0) continue;
     const A = projSky(cx, cy, Rmax, ha.alt, ha.az), B = projSky(cx, cy, Rmax, hb.alt, hb.az);
     x.beginPath(); x.moveTo(A[0], A[1]); x.lineTo(B[0], B[1]); x.stroke();
+  }
+  // constellation names at their centroids
+  if (!day) {
+    x.fillStyle = "rgba(201,168,240,.6)"; x.font = "italic 8.5px sans-serif";
+    for (const cst of CONSTELLATIONS) {
+      const pos = constLabelPos(cst, jd, lat, lon); if (!pos) continue;
+      const [lx2, ly2] = projSky(cx, cy, Rmax, pos.alt, pos.az);
+      x.fillText(cst.name.toUpperCase(), lx2, ly2);
+    }
+    const hc = eqToHoriz(MW_CORE.ra, MW_CORE.dec, jd, lat, lon);
+    if (hc.alt > 0) {
+      const [mx2, my2] = projSky(cx, cy, Rmax, hc.alt, hc.az);
+      x.fillStyle = "rgba(216,201,245,.7)"; x.fillText("✦ MILKY WAY", mx2, my2 + 10);
+    }
   }
   let up = 0;
   for (const [name, ra, dec, mag, lbl] of STARS) {
@@ -2073,6 +2137,16 @@ function drawSV() {
     if (fwd <= 0.04) return null;
     return [cx + dot3(v, Rt) / fwd * f, cy - dot3(v, Up) / fwd * f, fwd];
   };
+  // the Milky Way band (drawn before the ground so the horizon occludes it)
+  const jdv = jdNow();
+  for (const pt of MW_PTS) {
+    const hh = eqToHoriz(pt.ra, pt.dec, jdv, skyLoc.lat, skyLoc.lon); if (hh.alt < -4) continue;
+    const p = project(hh.az, hh.alt); if (!p) continue;
+    const rr = 55 + pt.w * 28;
+    x.globalAlpha = (day ? .014 : .055) * pt.w;
+    x.drawImage(mwSprite, p[0] - rr, p[1] - rr, rr * 2, rr * 2);
+  }
+  x.globalAlpha = 1;
   // horizon + ground
   const horizon = [];
   for (let d = -140; d <= 140; d += 3) { const p = project(norm360(svAz + d), 0); if (p) horizon.push(p); }
@@ -2106,6 +2180,22 @@ function drawSV() {
     const pa = project(A.az, A.alt), pb = project(B.az, B.alt); if (!pa || !pb) continue;
     x.beginPath(); x.moveTo(pa[0], pa[1]); x.lineTo(pb[0], pb[1]); x.stroke();
   }
+  // constellation names at their centroids + the Milky Way core
+  x.font = "italic 13px sans-serif";
+  for (const cst of CONSTELLATIONS) {
+    const pos = constLabelPos(cst, jdv, skyLoc.lat, skyLoc.lon); if (!pos) continue;
+    const p = project(pos.az, pos.alt); if (!p) continue;
+    x.globalAlpha = day ? .35 : .8; x.fillStyle = "#c9a8f0";
+    x.fillText(cst.name.toUpperCase(), p[0], p[1]);
+  }
+  {
+    const hc = eqToHoriz(MW_CORE.ra, MW_CORE.dec, jdv, skyLoc.lat, skyLoc.lon);
+    if (hc.alt > 0) {
+      const p = project(hc.az, hc.alt);
+      if (p) { x.globalAlpha = day ? .35 : .85; x.fillStyle = "#d8c9f5"; x.fillText("✦ MILKY WAY CORE", p[0], p[1]); }
+    }
+  }
+  x.globalAlpha = 1;
   // deep-sky objects
   for (const [name, ra, dec, kind] of DEEPSKY) {
     const hh = eqToHoriz(ra, dec, jdNow(), skyLoc.lat, skyLoc.lon); if (hh.alt < 0) continue;
@@ -2153,7 +2243,8 @@ function drawSV() {
   if (nearest) {
     const a = Math.round(nearest.alt);
     const where = a >= 0 ? `${a}° above the horizon` : `${-a}° below the horizon — not up yet`;
-    info.innerHTML = `<div class="big">${nearest.name}</div><div class="sub">${nearest.kind === "star" ? "star" : nearest.kind} · ${where}</div>`;
+    const tap = SKY_PANEL[nearest.name] ? `<div class="sub" style="color:var(--accent)">👆 tap it to learn more</div>` : "";
+    info.innerHTML = `<div class="big">${nearest.name}</div><div class="sub">${nearest.kind === "star" ? "star" : nearest.kind} · ${where}</div>` + tap;
   } else {
     info.innerHTML = `<div class="none">Looking ${lookDir} · ${Math.round(svAlt)}° ${svAlt < 3 ? "(at the horizon)" : "up"}</div><div class="sub">Nothing bright in the crosshair — keep panning</div>`;
   }
@@ -2171,7 +2262,9 @@ function svEnterFromTonight() {
   closeTonight();
   document.getElementById("skyview").classList.add("on");
   svActive = true; svMode = "drag"; updatePointBtn();
-  document.getElementById("sv-hint").classList.remove("gone");
+  const hint = document.getElementById("sv-hint");
+  hint.textContent = "Drag to look around · tap named objects to learn more";
+  hint.classList.remove("gone");
   svResize();
   // start looking at a nice bright object if one is up, else due south at 40°
   const scene = svScene();
@@ -2216,22 +2309,67 @@ async function svTogglePoint() {
   document.getElementById("sv-hint").textContent = "Point your phone at the sky · drag left/right to fix the compass";
   clearTimeout(svHintTimer); svHintTimer = setTimeout(() => document.getElementById("sv-hint").classList.add("gone"), 6000);
 }
-// drag: pan the view (drag mode) or nudge the compass offset (point mode)
+// Tap the sky: unproject the tap into a direction, find the nearest named object,
+// and open its fact panel (or say there's no page for it yet).
+function svTap(sx, sy) {
+  const Ld = dirVec(svAz, svAlt);
+  let Rt = cross3(Ld, [0, 0, 1]);
+  if (Math.hypot(Rt[0], Rt[1], Rt[2]) < 1e-3) Rt = cross3(Ld, [0, 1, 0]);
+  Rt = norm3(Rt);
+  const Up = norm3(cross3(Rt, Ld));
+  const f = (innerHeight / 2) / Math.tan(svFov / 2 * D2R);
+  const dx = sx - innerWidth / 2, dy = innerHeight / 2 - sy;
+  const v = norm3([Ld[0] * f + Rt[0] * dx + Up[0] * dy, Ld[1] * f + Rt[1] * dx + Up[1] * dy, Ld[2] * f + Rt[2] * dx + Up[2] * dy]);
+  const jd = jdNow(), cand = [];
+  for (const b of svScene().list) {
+    if (b.kind === "star" && b.alt < 0) continue;
+    cand.push({ name: b.name, az: b.az, alt: b.alt });
+  }
+  for (const [name, ra, dec] of DEEPSKY) {
+    const h = eqToHoriz(ra, dec, jd, skyLoc.lat, skyLoc.lon);
+    if (h.alt > 0) cand.push({ name, az: h.az, alt: h.alt });
+  }
+  for (const cst of CONSTELLATIONS) {
+    const p = constLabelPos(cst, jd, skyLoc.lat, skyLoc.lon);
+    if (p) cand.push({ name: cst.name, az: p.az, alt: p.alt });
+  }
+  const hc = eqToHoriz(MW_CORE.ra, MW_CORE.dec, jd, skyLoc.lat, skyLoc.lon);
+  if (hc.alt > 0) cand.push({ name: "Milky Way", az: hc.az, alt: hc.alt });
+  let best = null, bestD = Math.cos(8 * D2R);
+  for (const c of cand) {
+    const d = dot3(dirVec(c.az, c.alt), v);
+    if (d > bestD) { bestD = d; best = c; }
+  }
+  if (!best) return;
+  const pn = SKY_PANEL[best.name];
+  if (pn) {
+    const o = allObjects.find(a => a.name === pn);
+    if (o) { openPanel(o, o._el); return; }
+  }
+  showToast("✨ " + best.name + " — no story page for this one (yet)");
+}
+// drag: pan the view (drag mode) or nudge the compass offset (point mode); short tap = pick
 {
   const sv = document.getElementById("skyview");
-  let dragging = false, lx = 0, ly = 0;
-  sv.addEventListener("pointerdown", e => { if (e.target.closest(".nav-btn")) return; dragging = true; lx = e.clientX; ly = e.clientY; });
+  let dragging = false, lx = 0, ly = 0, moved = 0;
+  sv.addEventListener("pointerdown", e => { if (e.target.closest(".nav-btn")) return; dragging = true; moved = 0; lx = e.clientX; ly = e.clientY; });
   addEventListener("pointermove", e => {
     if (!dragging || !svActive) return;
     const dx = e.clientX - lx, dy = e.clientY - ly; lx = e.clientX; ly = e.clientY;
+    moved += Math.abs(dx) + Math.abs(dy);
     const scale = svFov / innerHeight;
     if (svMode === "point") { svHeadOff += dx * scale; }
     else { svAzT = norm360(svAzT - dx * scale); svAltT = Math.max(-10, Math.min(90, svAltT + dy * scale)); }
-    document.getElementById("sv-hint").classList.add("gone");
+    if (moved > 10) document.getElementById("sv-hint").classList.add("gone");
   });
-  addEventListener("pointerup", () => dragging = false);
+  addEventListener("pointerup", e => {
+    if (dragging && svActive && moved < 8 && !e.target.closest(".nav-btn, #sv-info, #panel")) svTap(e.clientX, e.clientY);
+    dragging = false;
+  });
   addEventListener("resize", () => { if (svActive) svResize(); });
-  addEventListener("keydown", e => { if (svActive && e.key === "Escape") svExit(); });
+  addEventListener("keydown", e => {
+    if (svActive && e.key === "Escape" && !panel.classList.contains("open")) svExit();
+  });
 }
 document.getElementById("sky-fullbtn").addEventListener("click", svEnterFromTonight);
 document.getElementById("sv-exit").addEventListener("click", svExit);
