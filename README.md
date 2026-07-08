@@ -9,6 +9,8 @@ An interactive journey through the universe — from Earth's orbit to the edge o
 - Ambient music generated live in your browser
 - 📏 Scale mode: pinch or scroll to zoom from the ISS to the observable universe, everything at true relative size
 - 🚀 3D Flight: fly from the Sun to Pluto in real 3D at [/fly/](https://cosmic-voyage.github.io/fly/)
+- 🌙 Tonight's Sky: live ISS position, tonight's visible planets (computed from real orbits) and the current Moon phase
+- 📅 Cosmic Calendar: the universe's 13.8 billion years compressed into a single scrubbable year
 - Track how much of the universe you've explored
 
 Built as a single self-contained HTML file. Imagery courtesy of NASA, ESA/Hubble, and ESO.
