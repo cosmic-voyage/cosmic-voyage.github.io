@@ -102,7 +102,7 @@
   #hud-stage .sub { color: var(--dim); font-size: 14px; margin-top: 5px; max-width: 420px; line-height: 1.5; }
 
   #hud-dist {
-    top: 30px; right: 34px; text-align: right;
+    top: 84px; right: 34px; text-align: right;
   }
   #hud-dist .dist {
     font-size: 15px; font-weight: 600; color: var(--ink);
@@ -150,21 +150,21 @@
 
   /* Bottom-right utility cluster — a single shallow row so it never climbs over objects */
   #tools {
-    position: fixed; bottom: 30px; right: 30px; z-index: 10;
+    position: fixed; top: 26px; right: 30px; z-index: 16;
     display: flex; gap: 10px; align-items: center;
   }
   .tlabel { margin-left: 7px; }
 
   /* Explore menu — collapses all the "modes" into one labelled, self-describing menu */
   #modemenu {
-    position: fixed; bottom: 84px; right: 30px; z-index: 15;
+    position: fixed; top: 78px; right: 30px; z-index: 15;
     width: 292px; max-width: calc(100vw - 32px);
     background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
     padding: 7px; display: none; flex-direction: column; gap: 3px;
     backdrop-filter: blur(12px); box-shadow: 0 12px 44px rgba(0,0,0,.55);
   }
   #modemenu.open { display: flex; animation: menuPop .2s ease; }
-  @keyframes menuPop { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes menuPop { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
   .mode-item {
     display: flex; gap: 13px; align-items: center; padding: 11px 12px; border-radius: 10px;
     background: none; border: none; cursor: pointer; text-align: left; color: var(--ink);
@@ -439,10 +439,10 @@
   @media (max-width: 640px) {
     #hud-stage { left: 18px; top: 18px; max-width: 60vw; }
     #hud-stage .sub { display: none; }
-    #hud-dist { right: 18px; top: 18px; }
-    #tools { bottom: 74px; right: 16px; gap: 8px; }
+    #hud-dist { right: 18px; top: 72px; }
+    #tools { top: 18px; right: 16px; gap: 8px; }
     #btn-sound { bottom: 74px; left: 16px; }
-    #modemenu { bottom: 126px; right: 16px; }
+    #modemenu { top: 60px; right: 16px; }
     #hud-nav { bottom: 20px; gap: 10px; }
     .nav-btn { padding: 11px 16px; font-size: 13px; }
     #panel h2 { font-size: 25px; }
@@ -1850,13 +1850,61 @@ const STARS = [
   ["Procyon",7.655,5.225,0.34,1],["Betelgeuse",5.9195,7.407,0.42,1],["Achernar",1.6286,-57.237,0.46,0],
   ["Hadar",14.0637,-60.373,0.61,0],["Altair",19.8464,8.868,0.77,1],["Acrux",12.4433,-63.099,0.77,1],
   ["Aldebaran",4.5987,16.509,0.85,1],["Antares",16.4901,-26.432,1.09,1],["Spica",13.4199,-11.161,1.04,1],
-  ["Pollux",7.7553,28.026,1.14,0],["Fomalhaut",22.9608,-29.622,1.16,1],["Deneb",20.6905,45.28,1.25,1],
+  ["Pollux",7.7553,28.026,1.14,1],["Fomalhaut",22.9608,-29.622,1.16,1],["Deneb",20.6905,45.28,1.25,1],
   ["Mimosa",12.7953,-59.689,1.25,0],["Regulus",10.1395,11.967,1.35,1],["Adhara",6.9770,-28.972,1.5,0],
-  ["Castor",7.5766,31.888,1.58,0],["Gacrux",12.5194,-57.113,1.63,0],["Bellatrix",5.4189,6.35,1.64,0],
+  ["Castor",7.5766,31.888,1.58,1],["Gacrux",12.5194,-57.113,1.63,0],["Bellatrix",5.4189,6.35,1.64,0],
   ["Elnath",5.4382,28.608,1.65,0],["Alnilam",5.6036,-1.202,1.69,0],["Alnitak",5.6793,-1.943,1.74,0],
-  ["Alioth",12.9004,55.96,1.76,0],["Mintaka",5.5334,-0.299,2.2,0],["Dubhe",11.0621,61.751,1.79,0],
+  ["Alioth",12.9004,55.96,1.76,0],["Mintaka",5.5334,-0.299,2.2,0],["Dubhe",11.0621,61.751,1.79,1],
   ["Alkaid",13.7923,49.313,1.85,0],["Polaris",2.5303,89.264,1.98,1],["Hamal",2.1195,23.462,2.0,0],
   ["Alphard",9.4599,-8.659,1.98,0],["Denebola",11.8177,14.572,2.11,0],["Merak",11.0307,56.383,2.37,0],
+  ["Alpha Cen",14.6600,-60.834,-0.27,1],["Mirzam",6.3783,-17.956,1.98,0],["Wezen",7.1399,-26.393,1.83,0],
+  ["Saiph",5.7959,-9.670,2.09,0],["Alhena",6.6285,16.399,1.93,0],["Menkalinan",5.9922,44.947,1.90,0],
+  ["Algieba",10.3329,19.842,2.28,0],["Zosma",11.2352,20.524,2.56,0],["Shaula",17.5601,-37.104,1.62,0],
+  ["Sargas",17.6219,-42.998,1.86,0],["Dschubba",16.0056,-22.622,2.29,0],["Acrab",16.0906,-19.805,2.56,0],
+  ["Epsilon Sco",16.8361,-34.293,2.29,0],["Kaus Aus",18.4029,-34.384,1.85,0],["Nunki",18.9211,-26.297,2.05,0],
+  ["Delta Cru",12.2525,-58.749,2.79,0],["Sadr",20.3705,40.257,2.23,0],["Gienah Cyg",20.7704,33.970,2.48,0],
+  ["Delta Cyg",19.7498,45.131,2.87,0],["Albireo",19.5121,27.960,3.05,0],["Tarazed",19.7711,10.613,2.72,0],
+  ["Phecda",11.8972,53.695,2.44,0],["Megrez",12.2571,57.033,3.31,0],["Mizar",13.3987,54.925,2.23,0],
+  ["Schedar",0.6751,56.537,2.24,0],["Caph",0.1529,59.150,2.28,0],["Gamma Cas",0.9451,60.717,2.47,0],
+  ["Ruchbah",1.4303,60.235,2.68,0],["Segin",1.9067,63.670,3.35,0],["Alpheratz",0.1398,29.091,2.06,0],
+  ["Mirach",1.1622,35.621,2.05,0],["Almach",2.0650,42.330,2.10,0],["Markab",23.0793,15.205,2.49,0],
+  ["Scheat",23.0629,28.083,2.42,0],["Algenib",0.2207,15.184,2.83,0],["Enif",21.7364,9.875,2.39,0],
+  ["Mirfak",3.4054,49.861,1.79,0],["Algol",3.1361,40.956,2.12,0],["Diphda",0.7265,-17.987,2.04,0],
+  ["Peacock",20.4275,-56.735,1.94,0],["Rasalhague",17.5822,12.560,2.08,0],["Kochab",14.8451,74.156,2.08,0],
+];
+// Constellation stick figures — [starA, starB] pairs (both must be up to draw the line)
+const CONST_LINES = [
+  // Orion
+  ["Betelgeuse","Bellatrix"],["Bellatrix","Mintaka"],["Betelgeuse","Alnitak"],["Mintaka","Alnilam"],
+  ["Alnilam","Alnitak"],["Mintaka","Rigel"],["Alnitak","Saiph"],
+  // Big Dipper (Ursa Major)
+  ["Dubhe","Merak"],["Merak","Phecda"],["Phecda","Megrez"],["Megrez","Dubhe"],
+  ["Megrez","Alioth"],["Alioth","Mizar"],["Mizar","Alkaid"],
+  // Cassiopeia W
+  ["Caph","Schedar"],["Schedar","Gamma Cas"],["Gamma Cas","Ruchbah"],["Ruchbah","Segin"],
+  // Southern Cross
+  ["Acrux","Gacrux"],["Mimosa","Delta Cru"],
+  // Scorpius
+  ["Acrab","Dschubba"],["Dschubba","Antares"],["Antares","Epsilon Sco"],["Epsilon Sco","Sargas"],
+  ["Sargas","Shaula"],["Shaula","Kaus Aus"],
+  // Summer Triangle
+  ["Vega","Deneb"],["Deneb","Altair"],["Altair","Vega"],
+  // Cygnus (Northern Cross)
+  ["Deneb","Sadr"],["Sadr","Albireo"],["Gienah Cyg","Sadr"],["Delta Cyg","Sadr"],
+  // Leo
+  ["Regulus","Algieba"],["Algieba","Zosma"],["Zosma","Denebola"],["Denebola","Regulus"],
+  // Gemini
+  ["Castor","Pollux"],
+  // Great Square of Pegasus + Andromeda chain
+  ["Markab","Scheat"],["Scheat","Alpheratz"],["Alpheratz","Algenib"],["Algenib","Markab"],
+  ["Alpheratz","Mirach"],["Mirach","Almach"],
+];
+const STAR_POS = {}; for (const s of STARS) STAR_POS[s[0]] = [s[1], s[2]];
+// Famous deep-sky objects — [name, RA h, Dec deg, kind]
+const DEEPSKY = [
+  ["Pleiades", 3.790, 24.117, "cluster"], ["Orion Nebula", 5.588, -5.391, "nebula"],
+  ["Andromeda Gal.", 0.712, 41.269, "galaxy"], ["Beehive", 8.670, 19.667, "cluster"],
+  ["Hyades", 4.470, 15.870, "cluster"],
 ];
 const PLANET_COL = { Mercury: "#b9b0a0", Venus: "#fff2c8", Mars: "#ff7a4a", Jupiter: "#e8d3a8", Saturn: "#e6c67a" };
 const CITIES = [
@@ -1901,6 +1949,15 @@ function drawSkyMap() {
     const lx = cx - (Rmax + 9) * Math.sin(az * D2R), ly = cy - (Rmax + 9) * Math.cos(az * D2R);
     x.fillText(lab, lx, ly);
   }
+  // constellation lines (drawn under the stars)
+  x.strokeStyle = day ? "rgba(125,160,220,.1)" : "rgba(120,175,255,.2)"; x.lineWidth = 1;
+  for (const [a, b] of CONST_LINES) {
+    const pa = STAR_POS[a], pb = STAR_POS[b]; if (!pa || !pb) continue;
+    const ha = eqToHoriz(pa[0], pa[1], jd, lat, lon), hb = eqToHoriz(pb[0], pb[1], jd, lat, lon);
+    if (ha.alt < 0 || hb.alt < 0) continue;
+    const A = projSky(cx, cy, Rmax, ha.alt, ha.az), B = projSky(cx, cy, Rmax, hb.alt, hb.az);
+    x.beginPath(); x.moveTo(A[0], A[1]); x.lineTo(B[0], B[1]); x.stroke();
+  }
   let up = 0;
   for (const [name, ra, dec, mag, lbl] of STARS) {
     const h = eqToHoriz(ra, dec, jd, lat, lon); if (h.alt < 0) continue;
@@ -1908,6 +1965,14 @@ function drawSkyMap() {
     x.globalAlpha = day ? 0.4 : 0.95;
     x.fillStyle = "#dfe8ff"; x.beginPath(); x.arc(sx, sy, Math.max(0.9, 2.7 - mag * 0.55), 0, 7); x.fill();
     if (lbl && !day) { x.globalAlpha = .5; x.fillStyle = "#9db3d8"; x.font = "9px sans-serif"; x.fillText(name, sx, sy - 7); }
+  }
+  // deep-sky objects (fuzzy markers)
+  for (const [name, ra, dec, kind] of DEEPSKY) {
+    const h = eqToHoriz(ra, dec, jd, lat, lon); if (h.alt < 0) continue;
+    const [sx, sy] = projSky(cx, cy, Rmax, h.alt, h.az);
+    const col = kind === "galaxy" ? "rgba(200,180,255,1)" : kind === "nebula" ? "rgba(255,150,190,1)" : "rgba(180,230,255,1)";
+    x.globalAlpha = day ? .3 : .75; x.fillStyle = col; x.beginPath(); x.arc(sx, sy, 2.6, 0, 7); x.fill();
+    x.globalAlpha = day ? .12 : .3; x.strokeStyle = col; x.lineWidth = 1; x.beginPath(); x.arc(sx, sy, 5.5, 0, 7); x.stroke();
   }
   x.globalAlpha = 1;
   for (const p of ["Mercury", "Venus", "Mars", "Jupiter", "Saturn"]) {
@@ -2032,38 +2097,63 @@ function drawSV() {
     x.font = (i % 2 ? "10px" : "bold 13px") + " sans-serif";
     x.fillText(CARD8[i], p[0], p[1]);
   }
-  // bodies
+  // constellation lines (under the stars) — both endpoints must be above the horizon
+  const starAA = {};
+  for (const b of scene.list) if (b.kind === "star") starAA[b.name] = b;
+  x.strokeStyle = day ? "rgba(125,160,220,.09)" : "rgba(120,175,255,.26)"; x.lineWidth = 1.2;
+  for (const [a, bn] of CONST_LINES) {
+    const A = starAA[a], B = starAA[bn]; if (!A || !B || A.alt < 0 || B.alt < 0) continue;
+    const pa = project(A.az, A.alt), pb = project(B.az, B.alt); if (!pa || !pb) continue;
+    x.beginPath(); x.moveTo(pa[0], pa[1]); x.lineTo(pb[0], pb[1]); x.stroke();
+  }
+  // deep-sky objects
+  for (const [name, ra, dec, kind] of DEEPSKY) {
+    const hh = eqToHoriz(ra, dec, jdNow(), skyLoc.lat, skyLoc.lon); if (hh.alt < 0) continue;
+    const p = project(hh.az, hh.alt); if (!p) continue;
+    const col = kind === "galaxy" ? "rgba(200,180,255,1)" : kind === "nebula" ? "rgba(255,150,190,1)" : "rgba(180,230,255,1)";
+    x.globalAlpha = day ? .3 : .8; x.fillStyle = col; x.beginPath(); x.arc(p[0], p[1], 3.4, 0, 7); x.fill();
+    x.globalAlpha = day ? .12 : .3; x.strokeStyle = col; x.lineWidth = 1; x.beginPath(); x.arc(p[0], p[1], 8, 0, 7); x.stroke();
+    x.globalAlpha = day ? .4 : .7; x.fillStyle = "#c9b8e8"; x.font = "10px sans-serif"; x.fillText(name, p[0], p[1] - 12);
+    x.globalAlpha = 1;
+  }
+  // bodies (Sun/Moon/planets are shown even below the horizon, dimmed, so you can still find them)
   let nearest = null, nearDot = Math.cos(9 * D2R);
   for (const b of scene.list) {
-    if (b.alt < -1) continue;
+    const belowH = b.alt < 0;
+    if (b.kind === "star" && belowH) continue; // stars only when up; Sun/Moon/planets show even underfoot
     const p = project(b.az, b.alt); if (!p) continue;
     const [sx, sy] = p;
+    x.globalAlpha = belowH ? 0.32 : 1;
     if (b.kind === "star") {
-      x.globalAlpha = day ? 0.4 : 0.95; x.fillStyle = "#dfe8ff";
+      x.fillStyle = day ? "rgba(223,232,255,.5)" : "#dfe8ff";
       x.beginPath(); x.arc(sx, sy, Math.max(1, 3 - b.mag * 0.6), 0, 7); x.fill();
-      if (b.lbl) { x.globalAlpha = day ? .3 : .6; x.fillStyle = "#9db3d8"; x.font = "11px sans-serif"; x.fillText(b.name, sx, sy - 10); }
-      x.globalAlpha = 1;
+      if (b.lbl && !day) { x.globalAlpha = .6; x.fillStyle = "#9db3d8"; x.font = "11px sans-serif"; x.fillText(b.name, sx, sy - 10); }
     } else if (b.kind === "sun") {
       const sg = x.createRadialGradient(sx, sy, 0, sx, sy, 46); sg.addColorStop(0, "#fff8d0"); sg.addColorStop(.35, "rgba(255,215,90,.7)"); sg.addColorStop(1, "transparent");
       x.fillStyle = sg; x.beginPath(); x.arc(sx, sy, 46, 0, 7); x.fill();
       x.fillStyle = "#ffe680"; x.beginPath(); x.arc(sx, sy, 16, 0, 7); x.fill();
-      x.fillStyle = "#fff"; x.font = "bold 13px sans-serif"; x.fillText("Sun", sx, sy - 26);
+      x.fillStyle = "#fff"; x.font = "bold 13px sans-serif"; x.fillText(belowH ? "Sun (below horizon)" : "Sun", sx, sy - 26);
     } else if (b.kind === "moon") {
-      miniMoon(x, sx, sy, 15); x.fillStyle = "#fff"; x.font = "bold 12px sans-serif"; x.fillText("Moon", sx, sy - 24);
+      miniMoon(x, sx, sy, 15); x.fillStyle = "#fff"; x.font = "bold 12px sans-serif"; x.fillText(belowH ? "Moon (below horizon)" : "Moon", sx, sy - 24);
     } else {
       x.fillStyle = PLANET_COL[b.name]; x.beginPath(); x.arc(sx, sy, 6, 0, 7); x.fill();
       x.strokeStyle = "rgba(0,0,10,.6)"; x.lineWidth = 1; x.stroke();
-      x.fillStyle = "#fff"; x.font = "bold 12px sans-serif"; x.fillText(b.name, sx, sy - 13);
+      x.fillStyle = "#fff"; x.font = "bold 12px sans-serif"; x.fillText(belowH ? b.name + " (below)" : b.name, sx, sy - 13);
     }
-    // is this the object closest to the crosshair?
-    const dd = dot3(dirVec(b.az, b.alt), Ld);
-    if (b.alt > 0 && dd > nearDot) { nearDot = dd; nearest = b; }
+    x.globalAlpha = 1;
+    // closest object to the crosshair (planets/Moon/Sun count even below the horizon)
+    if (!(b.kind === "star" && belowH)) {
+      const dd = dot3(dirVec(b.az, b.alt), Ld);
+      if (dd > nearDot) { nearDot = dd; nearest = b; }
+    }
   }
   // crosshair readout
   const info = document.getElementById("sv-info");
   const lookDir = CARD8[Math.round(svAz / 45) % 8];
   if (nearest) {
-    info.innerHTML = `<div class="big">${nearest.name}</div><div class="sub">${nearest.kind === "star" ? "star" : nearest.kind} · ${Math.round(nearest.alt)}° above the horizon</div>`;
+    const a = Math.round(nearest.alt);
+    const where = a >= 0 ? `${a}° above the horizon` : `${-a}° below the horizon — not up yet`;
+    info.innerHTML = `<div class="big">${nearest.name}</div><div class="sub">${nearest.kind === "star" ? "star" : nearest.kind} · ${where}</div>`;
   } else {
     info.innerHTML = `<div class="none">Looking ${lookDir} · ${Math.round(svAlt)}° ${svAlt < 3 ? "(at the horizon)" : "up"}</div><div class="sub">Nothing bright in the crosshair — keep panning</div>`;
   }
