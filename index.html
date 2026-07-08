@@ -236,6 +236,18 @@
     background: var(--card); border: 1px solid var(--line); border-radius: 12px;
     padding: 14px 16px; font-size: 13.5px; line-height: 1.6; color: #d5e2f7;
   }
+  #sky-canvas { width: 100%; max-width: 330px; display: block; margin: 2px auto 10px; }
+  #sky-loc-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  #sky-city {
+    flex: 1; min-width: 0; background: rgba(10,14,40,.7); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 12.5px; font-family: inherit;
+  }
+  .mini-btn {
+    background: rgba(125,211,252,.1); color: var(--accent); border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 11px; font-size: 12px; cursor: pointer; font-family: inherit; white-space: nowrap;
+  }
+  .mini-btn:hover { border-color: var(--accent); }
+  #sky-readout { font-size: 12.5px; color: #d5e2f7; text-align: center; margin-bottom: 8px; }
   #iss-map { width: 100%; border-radius: 8px; display: block; margin-bottom: 10px; }
   #iss-stats { font-variant-numeric: tabular-nums; }
   #iss-stats b { color: var(--ink); }
@@ -428,6 +440,19 @@
   <div id="tonight-scroll">
     <div class="kicker" id="tonight-date">Live</div>
     <h2>🌙 Tonight's Sky</h2>
+
+    <div class="tsec">
+      <h3>🧭 Your sky right now</h3>
+      <div class="tcard">
+        <div id="sky-loc-row">
+          <select id="sky-city" aria-label="Choose location"></select>
+          <button id="sky-here" class="mini-btn">📍 My location</button>
+        </div>
+        <canvas id="sky-canvas" width="360" height="360"></canvas>
+        <div id="sky-readout"></div>
+        <div class="tnote">You're looking straight up: the centre is directly overhead, the edge is your horizon, and N·E·S·W are the compass points. Planets, the Sun and Moon are labelled; faint dots are the brightest stars.</div>
+      </div>
+    </div>
 
     <div class="tsec">
       <h3>🛰 The ISS right now</h3>
@@ -1663,6 +1688,7 @@ function ephHelio(planet, jd) {
   return {
     x: (cw * cn - sw * sn * ci) * xp + (-sw * cn - cw * sn * ci) * yp,
     y: (cw * sn + sw * cn * ci) * xp + (-sw * sn + cw * cn * ci) * yp,
+    z: (sw * si) * xp + (cw * si) * yp,
   };
 }
 const jdNow = () => Date.now() / 86400000 + 2440587.5;
@@ -1675,6 +1701,174 @@ function elongationOf(planet) { // + = evening sky (east of Sun), - = morning sk
 const SYNODIC = 29.530588853, NEW_MOON_JD = 2451550.259722; // 2000-01-06 18:14 UTC
 const moonAge = () => ((jdNow() - NEW_MOON_JD) % SYNODIC + SYNODIC) % SYNODIC;
 const moonIllum = () => (1 - Math.cos(moonAge() / SYNODIC * 2 * Math.PI)) / 2;
+
+/* ---- Full alt/az sky-position engine ----
+   Validated (scratchpad) against: Polaris altitude ≈ observer latitude, the Sun's
+   altitude on the meridian at both solstices, and known new/full-moon dates. */
+const R2D = 180 / Math.PI, norm360 = d => ((d % 360) + 360) % 360;
+function planetEcliptic(planet, jd) {
+  const p = ephHelio(planet, jd), e = ephHelio("Earth", jd);
+  const X = p.x - e.x, Y = p.y - e.y, Z = p.z - e.z;
+  return { lon: norm360(Math.atan2(Y, X) * R2D), lat: Math.atan2(Z, Math.hypot(X, Y)) * R2D };
+}
+function sunEcliptic(jd) {
+  const e = ephHelio("Earth", jd);
+  return { lon: norm360(Math.atan2(-e.y, -e.x) * R2D), lat: Math.atan2(-e.z, Math.hypot(e.x, e.y)) * R2D };
+}
+function moonEcliptic(jd) {
+  const d = jd - 2451543.5;
+  const N = (125.1228 - 0.0529538083 * d) * D2R, inc = 5.1454 * D2R;
+  const w = (318.0634 + 0.1643573223 * d) * D2R, a = 60.2666, e = 0.054900;
+  const M = norm360(115.3654 + 13.0649929509 * d) * D2R;
+  let E = M + e * Math.sin(M) * (1 + e * Math.cos(M));
+  for (let k = 0; k < 6; k++) E = E - (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
+  const xv = a * (Math.cos(E) - e), yv = a * Math.sqrt(1 - e * e) * Math.sin(E);
+  const v = Math.atan2(yv, xv), r = Math.hypot(xv, yv);
+  const xe = r * (Math.cos(N) * Math.cos(v + w) - Math.sin(N) * Math.sin(v + w) * Math.cos(inc));
+  const ye = r * (Math.sin(N) * Math.cos(v + w) + Math.cos(N) * Math.sin(v + w) * Math.cos(inc));
+  const ze = r * Math.sin(v + w) * Math.sin(inc);
+  let lon = Math.atan2(ye, xe) * R2D, lat = Math.atan2(ze, Math.hypot(xe, ye)) * R2D;
+  const Ls = norm360(280.4665 + 0.98564736 * d), Lm = norm360(N * R2D + w * R2D + M * R2D);
+  const Ms = norm360(356.0470 + 0.98560025 * d), Mm = M * R2D, Dm = Lm - Ls, F = Lm - N * R2D;
+  const s = x => Math.sin(x * D2R);
+  lon += -1.274 * s(Mm - 2 * Dm) + 0.658 * s(2 * Dm) - 0.186 * s(Ms) - 0.059 * s(2 * Mm - 2 * Dm)
+       - 0.057 * s(Mm - 2 * Dm + Ms) + 0.053 * s(Mm + 2 * Dm) + 0.046 * s(2 * Dm - Ms) + 0.041 * s(Mm - Ms)
+       - 0.035 * s(Dm) - 0.031 * s(Mm + Ms) - 0.015 * s(2 * F - 2 * Dm) + 0.011 * s(Mm - 4 * Dm);
+  lat += -0.173 * s(F - 2 * Dm) - 0.055 * s(Mm - F - 2 * Dm) - 0.046 * s(Mm + F - 2 * Dm)
+       + 0.033 * s(F + 2 * Dm) + 0.017 * s(2 * Mm + F);
+  return { lon: norm360(lon), lat };
+}
+function eclToEq(lon, lat, jd) {
+  const eps = (23.4393 - 3.563e-7 * (jd - 2451545.0)) * D2R, l = lon * D2R, b = lat * D2R;
+  const dec = Math.asin(Math.sin(b) * Math.cos(eps) + Math.cos(b) * Math.sin(eps) * Math.sin(l));
+  const ra = Math.atan2(Math.sin(l) * Math.cos(eps) - Math.tan(b) * Math.sin(eps), Math.cos(l));
+  return { ra: norm360(ra * R2D) / 15, dec: dec * R2D };
+}
+const lstDeg = (jd, lonE) => norm360(280.46061837 + 360.98564736629 * (jd - 2451545.0) + lonE);
+function eqToHoriz(raH, decD, jd, latD, lonE) {
+  const H = (lstDeg(jd, lonE) - raH * 15) * D2R, dec = decD * D2R, lat = latD * D2R;
+  const alt = Math.asin(Math.sin(dec) * Math.sin(lat) + Math.cos(dec) * Math.cos(lat) * Math.cos(H));
+  const sinA = -Math.cos(dec) * Math.sin(H) / Math.cos(alt);
+  const cosA = (Math.sin(dec) - Math.sin(lat) * Math.sin(alt)) / (Math.cos(lat) * Math.cos(alt));
+  return { alt: alt * R2D, az: norm360(Math.atan2(sinA, cosA) * R2D) };
+}
+function bodyAltAz(name, jd, lat, lon) {
+  const ec = name === "Sun" ? sunEcliptic(jd) : name === "Moon" ? moonEcliptic(jd) : planetEcliptic(name, jd);
+  const eq = eclToEq(ec.lon, ec.lat, jd);
+  return eqToHoriz(eq.ra, eq.dec, jd, lat, lon);
+}
+// Bright stars: [name, RA hours, Dec deg, magnitude, label?] (J2000; precession negligible for naked eye)
+const STARS = [
+  ["Sirius",6.7525,-16.716,-1.46,1],["Canopus",6.3992,-52.696,-0.74,1],["Arcturus",14.261,19.182,-0.05,1],
+  ["Vega",18.6156,38.784,0.03,1],["Capella",5.2782,45.998,0.08,1],["Rigel",5.2423,-8.202,0.13,1],
+  ["Procyon",7.655,5.225,0.34,1],["Betelgeuse",5.9195,7.407,0.42,1],["Achernar",1.6286,-57.237,0.46,0],
+  ["Hadar",14.0637,-60.373,0.61,0],["Altair",19.8464,8.868,0.77,1],["Acrux",12.4433,-63.099,0.77,1],
+  ["Aldebaran",4.5987,16.509,0.85,1],["Antares",16.4901,-26.432,1.09,1],["Spica",13.4199,-11.161,1.04,1],
+  ["Pollux",7.7553,28.026,1.14,0],["Fomalhaut",22.9608,-29.622,1.16,1],["Deneb",20.6905,45.28,1.25,1],
+  ["Mimosa",12.7953,-59.689,1.25,0],["Regulus",10.1395,11.967,1.35,1],["Adhara",6.9770,-28.972,1.5,0],
+  ["Castor",7.5766,31.888,1.58,0],["Gacrux",12.5194,-57.113,1.63,0],["Bellatrix",5.4189,6.35,1.64,0],
+  ["Elnath",5.4382,28.608,1.65,0],["Alnilam",5.6036,-1.202,1.69,0],["Alnitak",5.6793,-1.943,1.74,0],
+  ["Alioth",12.9004,55.96,1.76,0],["Mintaka",5.5334,-0.299,2.2,0],["Dubhe",11.0621,61.751,1.79,0],
+  ["Alkaid",13.7923,49.313,1.85,0],["Polaris",2.5303,89.264,1.98,1],["Hamal",2.1195,23.462,2.0,0],
+  ["Alphard",9.4599,-8.659,1.98,0],["Denebola",11.8177,14.572,2.11,0],["Merak",11.0307,56.383,2.37,0],
+];
+const PLANET_COL = { Mercury: "#b9b0a0", Venus: "#fff2c8", Mars: "#ff7a4a", Jupiter: "#e8d3a8", Saturn: "#e6c67a" };
+const CITIES = [
+  ["Singapore", 1.3521, 103.8198], ["London", 51.5074, -0.1278], ["New York", 40.7128, -74.006],
+  ["Los Angeles", 34.05, -118.24], ["Sydney", -33.8688, 151.2093], ["Tokyo", 35.68, 139.69],
+  ["Hong Kong", 22.32, 114.17], ["Mumbai", 19.076, 72.877], ["Dubai", 25.2, 55.27],
+  ["Paris", 48.85, 2.35], ["Cape Town", -33.92, 18.42], ["Rio de Janeiro", -22.91, -43.17],
+  ["Auckland", -36.85, 174.76], ["Reykjavík", 64.15, -21.94], ["Nairobi", -1.29, 36.82],
+];
+let skyLoc = JSON.parse(localStorage.getItem("cosmic-skyloc") || "null") || { name: "Singapore", lat: 1.3521, lon: 103.8198 };
+let skyTimer = null, skyCtrlInit = false;
+
+function projSky(cx, cy, Rmax, alt, az) {
+  const r = (90 - alt) / 90 * Rmax; // azimuthal-equidistant: zenith centre, horizon edge
+  return [cx - r * Math.sin(az * D2R), cy - r * Math.cos(az * D2R)];
+}
+function miniMoon(x, mx, my, r) {
+  const phase = moonAge() / SYNODIC, waxing = phase < .5, k = Math.cos(phase * 2 * Math.PI);
+  x.save();
+  x.fillStyle = "#3a3f55"; x.beginPath(); x.arc(mx, my, r, 0, 7); x.fill();
+  x.beginPath(); x.arc(mx, my, r, 0, 7); x.clip();
+  x.fillStyle = "#f0ead8"; x.beginPath(); x.arc(mx, my, r, -Math.PI / 2, Math.PI / 2, !waxing); x.fill();
+  x.fillStyle = k > 0 ? "#3a3f55" : "#f0ead8"; x.beginPath(); x.ellipse(mx, my, r * Math.abs(k), r, 0, 0, 7); x.fill();
+  x.restore();
+}
+function drawSkyMap() {
+  const c = document.getElementById("sky-canvas"); if (!c) return;
+  const x = c.getContext("2d"), W = c.width, cx = W / 2, cy = W / 2, Rmax = W / 2 - 16;
+  const jd = jdNow(), lat = skyLoc.lat, lon = skyLoc.lon;
+  const sun = bodyAltAz("Sun", jd, lat, lon), day = sun.alt > -6;
+  x.clearRect(0, 0, W, W);
+  const g = x.createRadialGradient(cx, cy, 0, cx, cy, Rmax);
+  if (day) { g.addColorStop(0, "#3a5c96"); g.addColorStop(1, "#10203f"); }
+  else { g.addColorStop(0, "#0b1330"); g.addColorStop(1, "#04010e"); }
+  x.fillStyle = g; x.beginPath(); x.arc(cx, cy, Rmax, 0, 7); x.fill();
+  x.strokeStyle = "rgba(125,211,252,.14)"; x.lineWidth = 1;
+  for (const a of [30, 60]) { const rr = (90 - a) / 90 * Rmax; x.beginPath(); x.arc(cx, cy, rr, 0, 7); x.stroke(); }
+  x.strokeStyle = "rgba(125,211,252,.5)"; x.lineWidth = 1.5; x.beginPath(); x.arc(cx, cy, Rmax, 0, 7); x.stroke();
+  x.textAlign = "center"; x.textBaseline = "middle";
+  x.fillStyle = "rgba(210,225,250,.9)"; x.font = "bold 12px sans-serif";
+  for (const [lab, az] of [["N", 0], ["E", 90], ["S", 180], ["W", 270]]) {
+    const lx = cx - (Rmax + 9) * Math.sin(az * D2R), ly = cy - (Rmax + 9) * Math.cos(az * D2R);
+    x.fillText(lab, lx, ly);
+  }
+  let up = 0;
+  for (const [name, ra, dec, mag, lbl] of STARS) {
+    const h = eqToHoriz(ra, dec, jd, lat, lon); if (h.alt < 0) continue;
+    const [sx, sy] = projSky(cx, cy, Rmax, h.alt, h.az);
+    x.globalAlpha = day ? 0.4 : 0.95;
+    x.fillStyle = "#dfe8ff"; x.beginPath(); x.arc(sx, sy, Math.max(0.9, 2.7 - mag * 0.55), 0, 7); x.fill();
+    if (lbl && !day) { x.globalAlpha = .5; x.fillStyle = "#9db3d8"; x.font = "9px sans-serif"; x.fillText(name, sx, sy - 7); }
+  }
+  x.globalAlpha = 1;
+  for (const p of ["Mercury", "Venus", "Mars", "Jupiter", "Saturn"]) {
+    const h = bodyAltAz(p, jd, lat, lon); if (h.alt < 0) continue; up++;
+    const [sx, sy] = projSky(cx, cy, Rmax, h.alt, h.az);
+    x.fillStyle = PLANET_COL[p]; x.beginPath(); x.arc(sx, sy, 4, 0, 7); x.fill();
+    x.strokeStyle = "rgba(0,0,10,.6)"; x.lineWidth = 1; x.stroke();
+    x.fillStyle = "#fff"; x.font = "bold 10px sans-serif"; x.fillText(p, sx, sy - 10);
+  }
+  const hm = bodyAltAz("Moon", jd, lat, lon);
+  if (hm.alt > 0) { up++; const [sx, sy] = projSky(cx, cy, Rmax, hm.alt, hm.az); miniMoon(x, sx, sy, 6); x.fillStyle = "#fff"; x.font = "bold 10px sans-serif"; x.fillText("Moon", sx, sy - 12); }
+  if (sun.alt > 0) {
+    up++; const [sx, sy] = projSky(cx, cy, Rmax, sun.alt, sun.az);
+    const sg = x.createRadialGradient(sx, sy, 0, sx, sy, 16); sg.addColorStop(0, "#fff6c0"); sg.addColorStop(.4, "rgba(255,210,90,.6)"); sg.addColorStop(1, "transparent");
+    x.fillStyle = sg; x.beginPath(); x.arc(sx, sy, 16, 0, 7); x.fill();
+    x.fillStyle = "#ffe07a"; x.beginPath(); x.arc(sx, sy, 6, 0, 7); x.fill();
+    x.fillStyle = "#fff"; x.font = "bold 10px sans-serif"; x.fillText("Sun", sx, sy - 13);
+  }
+  const ro = document.getElementById("sky-readout");
+  if (ro) ro.innerHTML = `📍 <b>${skyLoc.name}</b> · ` +
+    (day ? "☀️ daytime — the sky's too bright to see these" : "🌙 night — good viewing");
+}
+function initSkyControls() {
+  if (skyCtrlInit) return; skyCtrlInit = true;
+  const sel = document.getElementById("sky-city");
+  sel.innerHTML = CITIES.map(([n]) => `<option value="${n}">${n}</option>`).join("") + `<option value="__here">📍 Use my location…</option>`;
+  if (skyLoc.name === "Your location") { const o = document.createElement("option"); o.textContent = "Your location"; o.value = "Your location"; sel.insertBefore(o, sel.firstChild); }
+  if ([...sel.options].some(o => o.value === skyLoc.name)) sel.value = skyLoc.name;
+  sel.addEventListener("change", () => {
+    if (sel.value === "__here") { useMyLocation(); return; }
+    const c = CITIES.find(c => c[0] === sel.value);
+    if (c) { skyLoc = { name: c[0], lat: c[1], lon: c[2] }; localStorage.setItem("cosmic-skyloc", JSON.stringify(skyLoc)); drawSkyMap(); renderSeason(); }
+  });
+  document.getElementById("sky-here").addEventListener("click", useMyLocation);
+}
+function useMyLocation() {
+  if (!navigator.geolocation) { showToast("📍 Location isn't available in this browser"); return; }
+  document.getElementById("sky-readout").textContent = "📍 Finding you…";
+  navigator.geolocation.getCurrentPosition(pos => {
+    skyLoc = { name: "Your location", lat: pos.coords.latitude, lon: pos.coords.longitude };
+    localStorage.setItem("cosmic-skyloc", JSON.stringify(skyLoc));
+    const sel = document.getElementById("sky-city");
+    if (![...sel.options].some(o => o.value === "Your location")) { const o = document.createElement("option"); o.textContent = "Your location"; o.value = "Your location"; sel.insertBefore(o, sel.firstChild); }
+    sel.value = "Your location";
+    drawSkyMap(); renderSeason();
+  }, () => showToast("📍 Couldn't get your location — pick a city instead"), { timeout: 9000, maximumAge: 600000 });
+}
 
 const tonightEl = document.getElementById("tonight");
 let issTimer = null, issTrail = [];
@@ -1770,12 +1964,14 @@ const SEASONS = [ // by month index; northern-sky flavoured, with a nod south
   { m: [8, 9, 10], obj: "Andromeda", text: "Autumn is galaxy season: from a dark spot, look below Cassiopeia's W for the faint smudge of <b>Andromeda</b> — the farthest thing your naked eyes can see." },
 ];
 function renderSeason() {
-  const s = SEASONS.find(s => s.m.includes(new Date().getMonth()));
+  const south = skyLoc && skyLoc.lat < 0;
+  const month = (new Date().getMonth() + (south ? 6 : 0)) % 12;
+  const s = SEASONS.find(s => s.m.includes(month));
   const o = allObjects.find(a => a.name === s.obj);
   document.getElementById("season-card").innerHTML =
     `<div style="margin-bottom:12px">${s.text}</div>` +
     `<button class="nav-btn" id="season-go" style="padding:9px 18px; font-size:12px">Explore ${s.obj} →</button>` +
-    `<div class="tnote">Seasons described for northern skies — south of the equator, flip the calendar by six months.</div>`;
+    `<div class="tnote">Adjusted for your ${south ? "southern" : "northern"} hemisphere (${skyLoc ? skyLoc.name : "default"}). Near the equator you can catch highlights from both.</div>`;
   document.getElementById("season-go").addEventListener("click", () => {
     closeTonight();
     if (o.stage !== cur) { travelTo(o.stage); setTimeout(() => openPanel(o, o._el), 1300); }
@@ -1785,6 +1981,9 @@ function renderSeason() {
 function openTonight() {
   document.getElementById("tonight-date").textContent =
     "Live · " + new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  initSkyControls();
+  drawSkyMap();
+  skyTimer = setInterval(drawSkyMap, 15000);
   drawMoon();
   document.getElementById("moon-info").innerHTML =
     `<b style="color:var(--ink)">${moonPhaseName()}</b><br>` +
@@ -1802,6 +2001,7 @@ function openTonight() {
 function closeTonight() {
   tonightEl.classList.remove("open");
   if (issTimer) { clearInterval(issTimer); issTimer = null; }
+  if (skyTimer) { clearInterval(skyTimer); skyTimer = null; }
 }
 document.getElementById("btn-tonight").addEventListener("click", () =>
   tonightEl.classList.contains("open") ? closeTonight() : openTonight());
