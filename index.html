@@ -267,7 +267,14 @@
     border-radius: 8px; padding: 8px 11px; font-size: 12px; cursor: pointer; font-family: inherit; white-space: nowrap;
   }
   .mini-btn:hover { border-color: var(--accent); }
-  #sky-readout { font-size: 12.5px; color: #d5e2f7; text-align: center; margin-bottom: 8px; }
+  #sky-readout { font-size: 12.5px; color: #d5e2f7; text-align: center; margin-bottom: 8px; line-height: 1.6; }
+  #sky-time-row { display: flex; gap: 8px; align-items: center; margin: 2px 0 6px; }
+  #sky-time { flex: 1; min-width: 0; accent-color: var(--accent); cursor: pointer; }
+  #sky-time-label {
+    text-align: center; font-size: 12px; color: #ffd75e; margin-bottom: 8px; cursor: pointer;
+  }
+  #sky-time-label u { color: var(--accent); }
+  .planetrow .rs { display: block; font-size: 11px; color: var(--dim); margin-top: 2px; }
   #iss-map { width: 100%; border-radius: 8px; display: block; margin-bottom: 10px; }
   #iss-stats { font-variant-numeric: tabular-nums; }
   #iss-stats b { color: var(--ink); }
@@ -318,6 +325,8 @@
   }
   #sv-hint.gone { opacity: 0; }
   #sv-point.active { background: linear-gradient(135deg, rgba(125,211,252,.3), rgba(192,132,252,.3)); border-color: var(--accent); color: var(--accent); }
+  #sv-bottom .nav-btn { white-space: nowrap; }
+  #sv-time { background: linear-gradient(135deg, rgba(255,215,94,.18), rgba(192,132,252,.14)); }
 
   /* ---------- Cosmic Calendar mode ---------- */
   #calSpace {
@@ -507,6 +516,12 @@
         </div>
         <canvas id="sky-canvas" width="360" height="360"></canvas>
         <div id="sky-readout"></div>
+        <div id="sky-time-row">
+          <button class="mini-btn" id="st-back" title="One day earlier">−1d</button>
+          <input id="sky-time" type="range" min="-720" max="720" step="5" value="0" aria-label="Scrub time (±12 hours)">
+          <button class="mini-btn" id="st-fwd" title="One day later">+1d</button>
+        </div>
+        <div id="sky-time-label" style="display:none"></div>
         <button id="sky-fullbtn">🔭 Point at the sky (fullscreen)</button>
         <div class="tnote">You're looking straight up: the centre is directly overhead, the edge is your horizon, and N·E·S·W are the compass points. Planets, the Sun and Moon are labelled; faint dots are the brightest stars.</div>
       </div>
@@ -558,6 +573,7 @@
   <div id="sv-hint">Drag to look around · tap named objects to learn more</div>
   <div id="sv-bottom">
     <button class="nav-btn" id="sv-point">📱 Point mode</button>
+    <button class="nav-btn" id="sv-time" style="display:none"></button>
   </div>
 </div>
 
@@ -1786,8 +1802,68 @@ function elongationOf(planet) { // + = evening sky (east of Sun), - = morning sk
   return ((pl - sl) % 360 + 540) % 360 - 180;
 }
 const SYNODIC = 29.530588853, NEW_MOON_JD = 2451550.259722; // 2000-01-06 18:14 UTC
-const moonAge = () => ((jdNow() - NEW_MOON_JD) % SYNODIC + SYNODIC) % SYNODIC;
-const moonIllum = () => (1 - Math.cos(moonAge() / SYNODIC * 2 * Math.PI)) / 2;
+const moonAge = (jd = jdNow()) => ((jd - NEW_MOON_JD) % SYNODIC + SYNODIC) % SYNODIC;
+const moonIllum = (jd = jdNow()) => (1 - Math.cos(moonAge(jd) / SYNODIC * 2 * Math.PI)) / 2;
+
+/* ---- Time travel: all sky views render at now + offset ---- */
+let skyDayOffset = 0, skyMinOffset = 0;
+const skyOffsetDays = () => skyDayOffset + skyMinOffset / 1440;
+const skyJd = () => jdNow() + skyOffsetDays();
+const skySimDate = () => new Date(Date.now() + skyOffsetDays() * 86400000);
+const skyIsNow = () => Math.abs(skyOffsetDays()) < 1 / 2880; // within 30 s of real time
+
+/* ---- ISS look angle from the observer (validated in scratchpad:
+       zenith, 10°-away elevation 15.04°, horizon-dip cases all exact) ---- */
+let issState = null; // { lat, lon, altKm, ts }
+function issLookAngle(issLat, issLon, issAltKm, obsLat, obsLon) {
+  const R = 6371;
+  const toXyz = (lat, lon, r) => [r * Math.cos(lat * D2R) * Math.cos(lon * D2R), r * Math.cos(lat * D2R) * Math.sin(lon * D2R), r * Math.sin(lat * D2R)];
+  const s = toXyz(issLat, issLon, R + issAltKm), o = toXyz(obsLat, obsLon, R);
+  const d = [s[0] - o[0], s[1] - o[1], s[2] - o[2]];
+  const la = obsLat * D2R, lo = obsLon * D2R;
+  const E = -Math.sin(lo) * d[0] + Math.cos(lo) * d[1];
+  const N = -Math.sin(la) * Math.cos(lo) * d[0] - Math.sin(la) * Math.sin(lo) * d[1] + Math.cos(la) * d[2];
+  const U = Math.cos(la) * Math.cos(lo) * d[0] + Math.cos(la) * Math.sin(lo) * d[1] + Math.sin(la) * d[2];
+  const rng = Math.hypot(d[0], d[1], d[2]);
+  return { az: norm360(Math.atan2(E, N) * R2D), alt: Math.asin(U / rng) * R2D, rangeKm: rng };
+}
+const issFresh = () => issState && Date.now() - issState.ts < 30000 && skyIsNow();
+
+/* ---- Rise & set: sample 24 h ahead, bisect the horizon crossings
+       (validated: Singapore sun times, Tromsø midnight sun, lunar events) ---- */
+function riseSet(name, lat, lon) {
+  const ALT0 = name === "Sun" ? -0.833 : -0.567; // refraction (+ solar upper limb)
+  const jd0 = jdNow();
+  const altAt = jd => bodyAltAz(name, jd, lat, lon).alt - ALT0;
+  const events = [];
+  let prev = altAt(jd0);
+  for (let m = 10; m <= 1440; m += 10) {
+    const jd = jd0 + m / 1440, alt = altAt(jd);
+    if ((prev < 0) !== (alt < 0)) {
+      let a = jd - 10 / 1440, b = jd;
+      for (let i = 0; i < 12; i++) { const mid = (a + b) / 2; if ((altAt(a) < 0) === (altAt(mid) < 0)) a = mid; else b = mid; }
+      events.push({ jd: (a + b) / 2, type: prev < 0 ? "rise" : "set" });
+      if (events.length >= 2) break;
+    }
+    prev = alt;
+  }
+  return events;
+}
+function fmtEventTime(jd) {
+  const d = new Date((jd - 2440587.5) * 86400000);
+  const t = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  return d.getDate() !== new Date().getDate() ? t + " tomorrow" : t;
+}
+function riseSetLine(name) {
+  const ev = riseSet(name, skyLoc.lat, skyLoc.lon);
+  const upNow = bodyAltAz(name, jdNow(), skyLoc.lat, skyLoc.lon).alt > (name === "Sun" ? -0.833 : -0.567);
+  if (!ev.length) return upNow ? "up all day and night" : "stays below the horizon today";
+  const rise = ev.find(e => e.type === "rise"), set = ev.find(e => e.type === "set");
+  if (upNow && set) return `up now · sets ${fmtEventTime(set.jd)}`;
+  let s = rise ? `rises ${fmtEventTime(rise.jd)}` : "";
+  if (rise && set && set.jd > rise.jd) s += ` · sets ${fmtEventTime(set.jd)}`;
+  return s || (set ? `sets ${fmtEventTime(set.jd)}` : "");
+}
 
 /* ---- Full alt/az sky-position engine ----
    Validated (scratchpad) against: Polaris altitude ≈ observer latitude, the Sun's
@@ -1995,6 +2071,7 @@ const SKY_PANEL = {
   "Milky Way": "The Milky Way",
   Orion: "Orion the Hunter", "Big Dipper": "The Big Dipper", Cassiopeia: "Cassiopeia",
   "Southern Cross": "The Southern Cross", Scorpius: "Scorpius",
+  ISS: "The ISS",
 };
 // Famous deep-sky objects — [name, RA h, Dec deg, kind]
 const DEEPSKY = [
@@ -2017,8 +2094,8 @@ function projSky(cx, cy, Rmax, alt, az) {
   const r = (90 - alt) / 90 * Rmax; // azimuthal-equidistant: zenith centre, horizon edge
   return [cx - r * Math.sin(az * D2R), cy - r * Math.cos(az * D2R)];
 }
-function miniMoon(x, mx, my, r) {
-  const phase = moonAge() / SYNODIC, waxing = phase < .5, k = Math.cos(phase * 2 * Math.PI);
+function miniMoon(x, mx, my, r, jd = jdNow()) {
+  const phase = moonAge(jd) / SYNODIC, waxing = phase < .5, k = Math.cos(phase * 2 * Math.PI);
   x.save();
   x.fillStyle = "#3a3f55"; x.beginPath(); x.arc(mx, my, r, 0, 7); x.fill();
   x.beginPath(); x.arc(mx, my, r, 0, 7); x.clip();
@@ -2029,7 +2106,7 @@ function miniMoon(x, mx, my, r) {
 function drawSkyMap() {
   const c = document.getElementById("sky-canvas"); if (!c) return;
   const x = c.getContext("2d"), W = c.width, cx = W / 2, cy = W / 2, Rmax = W / 2 - 16;
-  const jd = jdNow(), lat = skyLoc.lat, lon = skyLoc.lon;
+  const jd = skyJd(), lat = skyLoc.lat, lon = skyLoc.lon;
   const sun = bodyAltAz("Sun", jd, lat, lon), day = sun.alt > -6;
   x.clearRect(0, 0, W, W);
   const g = x.createRadialGradient(cx, cy, 0, cx, cy, Rmax);
@@ -2098,7 +2175,7 @@ function drawSkyMap() {
     x.fillStyle = "#fff"; x.font = "bold 10px sans-serif"; x.fillText(p, sx, sy - 10);
   }
   const hm = bodyAltAz("Moon", jd, lat, lon);
-  if (hm.alt > 0) { up++; const [sx, sy] = projSky(cx, cy, Rmax, hm.alt, hm.az); miniMoon(x, sx, sy, 6); x.fillStyle = "#fff"; x.font = "bold 10px sans-serif"; x.fillText("Moon", sx, sy - 12); }
+  if (hm.alt > 0) { up++; const [sx, sy] = projSky(cx, cy, Rmax, hm.alt, hm.az); miniMoon(x, sx, sy, 6, jd); x.fillStyle = "#fff"; x.font = "bold 10px sans-serif"; x.fillText("Moon", sx, sy - 12); }
   if (sun.alt > 0) {
     up++; const [sx, sy] = projSky(cx, cy, Rmax, sun.alt, sun.az);
     const sg = x.createRadialGradient(sx, sy, 0, sx, sy, 16); sg.addColorStop(0, "#fff6c0"); sg.addColorStop(.4, "rgba(255,210,90,.6)"); sg.addColorStop(1, "transparent");
@@ -2106,9 +2183,29 @@ function drawSkyMap() {
     x.fillStyle = "#ffe07a"; x.beginPath(); x.arc(sx, sy, 6, 0, 7); x.fill();
     x.fillStyle = "#fff"; x.font = "bold 10px sans-serif"; x.fillText("Sun", sx, sy - 13);
   }
+  // the ISS, live (only when viewing the real present)
+  if (issFresh()) {
+    const la = issLookAngle(issState.lat, issState.lon, issState.altKm, lat, lon);
+    if (la.alt > 0) {
+      const [ix, iy] = projSky(cx, cy, Rmax, la.alt, la.az);
+      x.fillStyle = "#aef3ff"; x.beginPath(); x.arc(ix, iy, 3, 0, 7); x.fill();
+      x.strokeStyle = "rgba(125,211,252,.7)"; x.lineWidth = 1; x.beginPath(); x.arc(ix, iy, 6.5, 0, 7); x.stroke();
+      x.fillStyle = "#aef3ff"; x.font = "bold 9px sans-serif"; x.fillText("ISS", ix, iy - 11);
+    }
+  }
   const ro = document.getElementById("sky-readout");
   if (ro) ro.innerHTML = `📍 <b>${skyLoc.name}</b> · ` +
-    (day ? "☀️ daytime — the sky's too bright to see these" : "🌙 night — good viewing");
+    (day ? "☀️ daytime — the sky's too bright to see these" : "🌙 night — good viewing") +
+    (sunTimesStr ? `<br>${sunTimesStr}` : "");
+}
+let sunTimesStr = "";
+function renderTimes() { // sun line + moon line + planet rise/set (recomputed on open & location change)
+  const ev = riseSet("Sun", skyLoc.lat, skyLoc.lon);
+  sunTimesStr = ev.slice(0, 2).map(e => (e.type === "set" ? "☀️ sets " : "🌅 rises ") + fmtEventTime(e.jd)).join(" · ")
+    || "☀️ midnight sun / polar night at this latitude";
+  const mEl = document.getElementById("moon-times");
+  if (mEl) mEl.textContent = "🕐 " + riseSetLine("Moon");
+  renderPlanets();
 }
 function initSkyControls() {
   if (skyCtrlInit) return; skyCtrlInit = true;
@@ -2119,9 +2216,38 @@ function initSkyControls() {
   sel.addEventListener("change", () => {
     if (sel.value === "__here") { useMyLocation(); return; }
     const c = CITIES.find(c => c[0] === sel.value);
-    if (c) { skyLoc = { name: c[0], lat: c[1], lon: c[2] }; localStorage.setItem("cosmic-skyloc", JSON.stringify(skyLoc)); drawSkyMap(); renderSeason(); }
+    if (c) { skyLoc = { name: c[0], lat: c[1], lon: c[2] }; localStorage.setItem("cosmic-skyloc", JSON.stringify(skyLoc)); renderTimes(); drawSkyMap(); renderSeason(); }
   });
   document.getElementById("sky-here").addEventListener("click", useMyLocation);
+  // time-travel controls
+  const stSlider = document.getElementById("sky-time");
+  stSlider.addEventListener("input", () => { skyMinOffset = +stSlider.value; updateSkyTimeUI(); });
+  document.getElementById("st-back").addEventListener("click", () => { skyDayOffset -= 1; updateSkyTimeUI(); });
+  document.getElementById("st-fwd").addEventListener("click", () => { skyDayOffset += 1; updateSkyTimeUI(); });
+  document.getElementById("sky-time-label").addEventListener("click", resetSkyTime);
+  document.getElementById("sv-time").addEventListener("click", resetSkyTime);
+}
+function resetSkyTime() {
+  skyDayOffset = 0; skyMinOffset = 0;
+  document.getElementById("sky-time").value = 0;
+  updateSkyTimeUI();
+}
+function updateSkyTimeUI() {
+  const lbl = document.getElementById("sky-time-label");
+  if (skyIsNow()) {
+    lbl.style.display = "none";
+  } else {
+    lbl.style.display = "";
+    lbl.innerHTML = "⏱ " + skySimDate().toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) +
+      " — sky simulated · <u>back to now</u>";
+  }
+  const svt = document.getElementById("sv-time");
+  if (skyIsNow()) svt.style.display = "none";
+  else {
+    svt.style.display = "";
+    svt.innerHTML = `🕐 ${skySimDate().toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })} <span style="opacity:.7">↺ now</span>`;
+  }
+  drawSkyMap();
 }
 function useMyLocation() {
   if (!navigator.geolocation) { showToast("📍 Location isn't available in this browser"); return; }
@@ -2149,7 +2275,7 @@ const dirVec = (az, alt) => { const a = az*D2R, e = alt*D2R; return [Math.sin(a)
 const CARD8 = ["N","NE","E","SE","S","SW","W","NW"];
 
 function svScene() { // gather every plottable body once per frame
-  const jd = jdNow(), lat = skyLoc.lat, lon = skyLoc.lon;
+  const jd = skyJd(), lat = skyLoc.lat, lon = skyLoc.lon;
   const out = [];
   for (const [name, ra, dec, mag, lbl] of STARS) {
     const h = eqToHoriz(ra, dec, jd, lat, lon);
@@ -2189,7 +2315,7 @@ function drawSV() {
     return [cx + dot3(v, Rt) / fwd * f, cy - dot3(v, Up) / fwd * f, fwd];
   };
   // the Milky Way band (textured; drawn before the ground so the horizon occludes it)
-  const jdv = jdNow();
+  const jdv = skyJd();
   drawMilkyWay(x, (ra, dec) => {
     const hh = eqToHoriz(ra, dec, jdv, skyLoc.lat, skyLoc.lon);
     return hh.alt < -4 ? null : project(hh.az, hh.alt);
@@ -2271,7 +2397,7 @@ function drawSV() {
       x.fillStyle = "#ffe680"; x.beginPath(); x.arc(sx, sy, 16, 0, 7); x.fill();
       x.fillStyle = "#fff"; x.font = "bold 13px sans-serif"; x.fillText(belowH ? "Sun (below horizon)" : "Sun", sx, sy - 26);
     } else if (b.kind === "moon") {
-      miniMoon(x, sx, sy, 15); x.fillStyle = "#fff"; x.font = "bold 12px sans-serif"; x.fillText(belowH ? "Moon (below horizon)" : "Moon", sx, sy - 24);
+      miniMoon(x, sx, sy, 15, jdv); x.fillStyle = "#fff"; x.font = "bold 12px sans-serif"; x.fillText(belowH ? "Moon (below horizon)" : "Moon", sx, sy - 24);
     } else {
       x.fillStyle = PLANET_COL[b.name]; x.beginPath(); x.arc(sx, sy, 6, 0, 7); x.fill();
       x.strokeStyle = "rgba(0,0,10,.6)"; x.lineWidth = 1; x.stroke();
@@ -2282,6 +2408,30 @@ function drawSV() {
     if (!(b.kind === "star" && belowH)) {
       const dd = dot3(dirVec(b.az, b.alt), Ld);
       if (dd > nearDot) { nearDot = dd; nearest = b; }
+    }
+  }
+  // the ISS, live (only when viewing the real present, not during time travel)
+  let issH = null;
+  if (issFresh()) {
+    issH = issLookAngle(issState.lat, issState.lon, issState.altKm, skyLoc.lat, skyLoc.lon);
+    if (issH.alt > -3) {
+      const p = project(issH.az, issH.alt);
+      if (p) {
+        const [sx, sy] = p;
+        x.globalAlpha = issH.alt < 0 ? 0.35 : 1;
+        // pulsing halo so it reads as "live and moving"
+        const pulse = 0.6 + 0.4 * Math.sin(performance.now() / 300);
+        const gg = x.createRadialGradient(sx, sy, 0, sx, sy, 22);
+        gg.addColorStop(0, `rgba(174,243,255,${0.55 * pulse})`); gg.addColorStop(1, "transparent");
+        x.fillStyle = gg; x.beginPath(); x.arc(sx, sy, 22, 0, 7); x.fill();
+        x.fillStyle = "#aef3ff"; x.beginPath(); x.arc(sx, sy, 4, 0, 7); x.fill();
+        x.strokeStyle = "#7dd3fc"; x.lineWidth = 1.4; x.beginPath(); x.arc(sx, sy, 9, 0, 7); x.stroke();
+        x.fillStyle = "#eaf2ff"; x.font = "bold 11px sans-serif"; x.fillText(issH.alt < 0 ? "ISS (below)" : "🛰 ISS", sx, sy - 18);
+        x.globalAlpha = 1;
+        // eligible for the crosshair too
+        const dd = dot3(dirVec(issH.az, issH.alt), Ld);
+        if (dd > nearDot) { nearDot = dd; nearest = { name: "ISS", kind: "spacecraft", alt: issH.alt }; }
+      }
     }
   }
   // crosshair readout
@@ -2309,6 +2459,7 @@ function svEnterFromTonight() {
   closeTonight();
   document.getElementById("skyview").classList.add("on");
   svActive = true; svMode = "drag"; updatePointBtn();
+  updateSkyTimeUI(); // carry any time-travel offset in and show the "back to now" button
   const hint = document.getElementById("sv-hint");
   hint.textContent = "Drag to look around · tap named objects to learn more";
   hint.classList.remove("gone");
@@ -2382,7 +2533,7 @@ function svTap(sx, sy) {
   const f = (innerHeight / 2) / Math.tan(svFov / 2 * D2R);
   const dx = sx - innerWidth / 2, dy = innerHeight / 2 - sy;
   const v = norm3([Ld[0] * f + Rt[0] * dx + Up[0] * dy, Ld[1] * f + Rt[1] * dx + Up[1] * dy, Ld[2] * f + Rt[2] * dx + Up[2] * dy]);
-  const jd = jdNow(), cand = [];
+  const jd = skyJd(), cand = [];
   for (const b of svScene().list) {
     if (b.kind === "star" && b.alt < 0) continue;
     cand.push({ name: b.name, az: b.az, alt: b.alt });
@@ -2397,6 +2548,10 @@ function svTap(sx, sy) {
   }
   const hc = eqToHoriz(MW_CORE.ra, MW_CORE.dec, jd, skyLoc.lat, skyLoc.lon);
   if (hc.alt > 0) cand.push({ name: "Milky Way", az: hc.az, alt: hc.alt });
+  if (issFresh()) {
+    const iss = issLookAngle(issState.lat, issState.lon, issState.altKm, skyLoc.lat, skyLoc.lon);
+    if (iss.alt > -3) cand.push({ name: "ISS", az: iss.az, alt: iss.alt });
+  }
   let best = null, bestD = Math.cos(8 * D2R);
   for (const c of cand) {
     const d = dot3(dirVec(c.az, c.alt), v);
@@ -2467,10 +2622,18 @@ function drawIssMap(lat, lon) {
 async function pollIss() {
   try {
     const d = await (await fetch("https://api.wheretheiss.at/v1/satellites/25544")).json();
+    issState = { lat: d.latitude, lon: d.longitude, altKm: d.altitude, ts: Date.now() };
     drawIssMap(d.latitude, d.longitude);
+    // "Look for it in the sky" — az/alt for this observer
+    const la = issLookAngle(d.latitude, d.longitude, d.altitude, skyLoc.lat, skyLoc.lon);
+    let visStr;
+    if (la.alt > 10) visStr = `🔭 <b>Overhead now</b> — look ${CARD8[Math.round(la.az/45)%8]} · ${Math.round(la.alt)}° up`;
+    else if (la.alt > 0) visStr = `🌅 Just above the horizon (${CARD8[Math.round(la.az/45)%8]}, ${Math.round(la.alt)}° up)`;
+    else visStr = `Below the horizon here — ${Math.round(-la.alt)}° underfoot`;
     document.getElementById("iss-stats").innerHTML =
       `Altitude <b>${Math.round(d.altitude)} km</b> · Speed <b>${Math.round(d.velocity).toLocaleString("en-US")} km/h</b><br>` +
-      `Over ${Math.abs(d.latitude).toFixed(1)}°${d.latitude >= 0 ? "N" : "S"}, ${Math.abs(d.longitude).toFixed(1)}°${d.longitude >= 0 ? "E" : "W"}`;
+      `Over ${Math.abs(d.latitude).toFixed(1)}°${d.latitude >= 0 ? "N" : "S"}, ${Math.abs(d.longitude).toFixed(1)}°${d.longitude >= 0 ? "E" : "W"}` +
+      `<br>${visStr}`;
   } catch (e) {
     document.getElementById("iss-stats").textContent = "Can't reach the ISS tracker right now — it needs an internet connection.";
   }
@@ -2520,7 +2683,8 @@ function renderPlanets() {
     else if (e > 0) { where = "evening sky — look west after sunset" + (e < 25 ? " (low in twilight)" : ""); tag = "🌇"; }
     else { where = "morning sky — look east before dawn" + (e > -25 ? " (low in twilight)" : ""); tag = "🌅"; }
     const note = Math.abs(e) >= 15 ? `<br><span style="color:var(--dim); font-size:11.5px">${PLANET_NOTES[p]}</span>` : "";
-    return `<div class="planetrow"><span class="pname">${p}</span><span class="pwhere">${where}${note}</span><span class="ptag">${tag}</span></div>`;
+    const rs = riseSetLine(p);
+    return `<div class="planetrow"><span class="pname">${p}</span><span class="pwhere">${where}${note}<span class="rs">🕐 ${rs}</span></span><span class="ptag">${tag}</span></div>`;
   });
   document.getElementById("planet-list").innerHTML = rows.join("");
 }
@@ -2549,14 +2713,16 @@ function openTonight() {
   document.getElementById("tonight-date").textContent =
     "Live · " + new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
   initSkyControls();
+  resetSkyTime(); // each fresh open of Tonight starts at "now"
   drawSkyMap();
   skyTimer = setInterval(drawSkyMap, 15000);
   drawMoon();
   document.getElementById("moon-info").innerHTML =
     `<b style="color:var(--ink)">${moonPhaseName()}</b><br>` +
     `${Math.round(moonIllum() * 100)}% illuminated<br>` +
-    `<span style="color:var(--dim); font-size:12px">Day ${Math.round(moonAge())} of its 29.5-day cycle</span>`;
-  renderPlanets();
+    `<span style="color:var(--dim); font-size:12px">Day ${Math.round(moonAge())} of its 29.5-day cycle</span>` +
+    `<div id="moon-times" style="margin-top:6px; font-size:12px; color:var(--accent)"></div>`;
+  renderTimes();
   renderSeason();
   issTrail = [];
   drawIssMap(null, null);
@@ -2569,6 +2735,8 @@ function closeTonight() {
   tonightEl.classList.remove("open");
   if (issTimer) { clearInterval(issTimer); issTimer = null; }
   if (skyTimer) { clearInterval(skyTimer); skyTimer = null; }
+  // NB: time offset is preserved here so it carries into the fullscreen sky view;
+  // it's reset in openTonight instead, so each fresh open starts at "now".
 }
 document.getElementById("tonight-close").addEventListener("click", closeTonight);
 
