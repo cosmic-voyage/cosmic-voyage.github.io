@@ -275,6 +275,10 @@
   }
   #sky-time-label u { color: var(--accent); }
   .planetrow .rs { display: block; font-size: 11px; color: var(--dim); margin-top: 2px; }
+  .hlrow { display: flex; gap: 10px; align-items: flex-start; font-size: 13.5px; line-height: 1.55; color: #d5e2f7; padding: 7px 0; border-bottom: 1px solid rgba(125,211,252,.08); }
+  .hlrow:last-child { border-bottom: none; }
+  .hlrow b { color: var(--ink); }
+  .hlrow .hltap { color: var(--accent); cursor: pointer; }
   #iss-map { width: 100%; border-radius: 8px; display: block; margin-bottom: 10px; }
   #iss-stats { font-variant-numeric: tabular-nums; }
   #iss-stats b { color: var(--ink); }
@@ -525,6 +529,11 @@
         <button id="sky-fullbtn">🔭 Point at the sky (fullscreen)</button>
         <div class="tnote">You're looking straight up: the centre is directly overhead, the edge is your horizon, and N·E·S·W are the compass points. Planets, the Sun and Moon are labelled; faint dots are the brightest stars. Milky Way imagery: ESO/S. Brunier (CC BY 4.0).</div>
       </div>
+    </div>
+
+    <div class="tsec" id="highlights-sec">
+      <h3>✨ Don't miss tonight</h3>
+      <div class="tcard" id="highlights-card"></div>
     </div>
 
     <div class="tsec">
@@ -2091,6 +2100,37 @@ const DEEPSKY = [
   ["Hyades", 4.470, 15.870, "cluster"],
 ];
 const PLANET_COL = { Mercury: "#b9b0a0", Venus: "#fff2c8", Mars: "#ff7a4a", Jupiter: "#e8d3a8", Saturn: "#e6c67a" };
+// Major annual meteor showers: [name, peakMonth(1-12), peakDay, radiant RA h, Dec°, ZHR, parent]
+const METEOR_SHOWERS = [
+  ["Quadrantids", 1, 3, 15.33, 49.5, 110, "asteroid 2003 EH1"],
+  ["Lyrids", 4, 22, 18.07, 34, 18, "Comet Thatcher"],
+  ["Eta Aquariids", 5, 6, 22.53, -1, 50, "Halley's Comet"],
+  ["S. Delta Aquariids", 7, 30, 22.70, -16.4, 25, "Comet Machholz"],
+  ["Perseids", 8, 12, 3.22, 58, 100, "Comet Swift–Tuttle"],
+  ["Orionids", 10, 21, 6.35, 16, 20, "Halley's Comet"],
+  ["Leonids", 11, 17, 10.28, 22, 15, "Comet Tempel–Tuttle"],
+  ["Geminids", 12, 14, 7.55, 33, 120, "asteroid Phaethon"],
+  ["Ursids", 12, 22, 14.47, 76, 10, "Comet Tuttle"],
+];
+// Days from now until a shower's peak (this year or next), and how "active" it is
+function meteorDaysToPeak(sh, now = new Date()) {
+  const [, mo, dy] = sh;
+  let peak = new Date(now.getFullYear(), mo - 1, dy, 2, 0, 0);
+  let d = (peak - now) / 86400000;
+  if (d < -3) { peak = new Date(now.getFullYear() + 1, mo - 1, dy, 2, 0, 0); d = (peak - now) / 86400000; }
+  return d;
+}
+function activeMeteorShowers(now = new Date()) { // within ±3 days of peak
+  return METEOR_SHOWERS.map(sh => ({ sh, days: meteorDaysToPeak(sh, now) }))
+    .filter(o => Math.abs(o.days) <= 3)
+    .sort((a, b) => Math.abs(a.days) - Math.abs(b.days));
+}
+// Angular separation (°) between two named bodies at jd — frame-independent
+function angularSep(nameA, nameB, jd, lat, lon) {
+  const a = bodyAltAz(nameA, jd, lat, lon), b = bodyAltAz(nameB, jd, lat, lon);
+  const av = dirVec(a.az, a.alt), bv = dirVec(b.az, b.alt);
+  return Math.acos(Math.max(-1, Math.min(1, av[0]*bv[0] + av[1]*bv[1] + av[2]*bv[2]))) * R2D;
+}
 const CITIES = [
   ["Singapore", 1.3521, 103.8198], ["London", 51.5074, -0.1278], ["New York", 40.7128, -74.006],
   ["Los Angeles", 34.05, -118.24], ["Sydney", -33.8688, 151.2093], ["Tokyo", 35.68, 139.69],
@@ -2114,16 +2154,40 @@ function miniMoon(x, mx, my, r, jd = jdNow()) {
   x.fillStyle = k > 0 ? "#3a3f55" : "#f0ead8"; x.beginPath(); x.ellipse(mx, my, r * Math.abs(k), r, 0, 0, 7); x.fill();
   x.restore();
 }
+// Sky background + twilight from the Sun's altitude: full daylight above 0°, warm
+// twilight glow fading through civil/nautical/astronomical dusk, night below −18°.
+function skyColors(sunAlt) {
+  const hx = c => "#" + c.map(v => Math.round(v).toString(16).padStart(2, "0")).join("");
+  const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+  if (sunAlt > 0) return { top: "#1c3d76", bot: "#4a74b8", glow: 0, day: true };
+  const tw = Math.max(0, Math.min(1, (sunAlt + 18) / 18)); // 1 at sunset → 0 astro-dark
+  const top = hx(mix([5, 1, 15], [20, 28, 62], tw));
+  const bot = hx(mix([10, 22, 54], [48, 60, 116], tw));
+  const glow = Math.max(0, Math.min(1, (sunAlt + 13) / 13)); // strongest just after sunset
+  return { top, bot, glow, day: false };
+}
 function drawSkyMap() {
   const c = document.getElementById("sky-canvas"); if (!c) return;
   const x = c.getContext("2d"), W = c.width, cx = W / 2, cy = W / 2, Rmax = W / 2 - 16;
   const jd = skyJd(), lat = skyLoc.lat, lon = skyLoc.lon;
   const sun = bodyAltAz("Sun", jd, lat, lon), day = sun.alt > -6;
+  const sky = skyColors(sun.alt);
   x.clearRect(0, 0, W, W);
   const g = x.createRadialGradient(cx, cy, 0, cx, cy, Rmax);
-  if (day) { g.addColorStop(0, "#3a5c96"); g.addColorStop(1, "#10203f"); }
-  else { g.addColorStop(0, "#0b1330"); g.addColorStop(1, "#04010e"); }
+  g.addColorStop(0, sky.day ? "#3a5c96" : sky.top); g.addColorStop(1, sky.bot);
   x.fillStyle = g; x.beginPath(); x.arc(cx, cy, Rmax, 0, 7); x.fill();
+  // twilight glow arc at the horizon in the Sun's direction
+  if (sky.glow > 0.02) {
+    const [gx, gy] = projSky(cx, cy, Rmax, Math.max(sun.alt, -3), sun.az);
+    const rg = x.createRadialGradient(gx, gy, 0, gx, gy, Rmax * 0.95);
+    const warm = sun.alt > -6 ? "255,150,66" : "255,110,80";
+    rg.addColorStop(0, `rgba(${warm},${(0.32 * sky.glow).toFixed(3)})`);
+    rg.addColorStop(0.55, `rgba(${warm},${(0.09 * sky.glow).toFixed(3)})`);
+    rg.addColorStop(1, "rgba(0,0,0,0)");
+    x.save(); x.beginPath(); x.arc(cx, cy, Rmax, 0, 7); x.clip();
+    x.globalCompositeOperation = "screen"; x.fillStyle = rg; x.fillRect(0, 0, W, W);
+    x.restore();
+  }
   x.strokeStyle = "rgba(125,211,252,.14)"; x.lineWidth = 1;
   for (const a of [30, 60]) { const rr = (90 - a) / 90 * Rmax; x.beginPath(); x.arc(cx, cy, rr, 0, 7); x.stroke(); }
   x.strokeStyle = "rgba(125,211,252,.5)"; x.lineWidth = 1.5; x.beginPath(); x.arc(cx, cy, Rmax, 0, 7); x.stroke();
@@ -2182,6 +2246,14 @@ function drawSkyMap() {
     x.globalAlpha = day ? .12 : .3; x.strokeStyle = col; x.lineWidth = 1; x.beginPath(); x.arc(sx, sy, 5.5, 0, 7); x.stroke();
   }
   x.globalAlpha = 1;
+  // active meteor-shower radiants
+  if (!day) for (const { sh } of activeMeteorShowers()) {
+    const h = eqToHoriz(sh[3], sh[4], jd, lat, lon); if (h.alt < 0) continue;
+    const [sx, sy] = projSky(cx, cy, Rmax, h.alt, h.az);
+    x.fillStyle = "#ffd75e"; x.font = "10px sans-serif"; x.textAlign = "center";
+    x.fillText("☄", sx, sy);
+    x.globalAlpha = .6; x.fillText(sh[0], sx, sy - 9); x.globalAlpha = 1;
+  }
   for (const p of ["Mercury", "Venus", "Mars", "Jupiter", "Saturn"]) {
     const h = bodyAltAz(p, jd, lat, lon); if (h.alt < 0) continue; up++;
     const [sx, sy] = projSky(cx, cy, Rmax, h.alt, h.az);
@@ -2209,9 +2281,11 @@ function drawSkyMap() {
     }
   }
   const ro = document.getElementById("sky-readout");
-  if (ro) ro.innerHTML = `📍 <b>${skyLoc.name}</b> · ` +
-    (day ? "☀️ daytime — the sky's too bright to see these" : "🌙 night — good viewing") +
-    (sunTimesStr ? `<br>${sunTimesStr}` : "");
+  const cond = sun.alt > 0 ? "☀️ daytime — the sky's too bright to see these"
+    : sun.alt > -6 ? "🌆 twilight — only the brightest planets show yet"
+    : sun.alt > -12 ? "🌌 dusk — stars are coming out"
+    : "🌙 night — good viewing";
+  if (ro) ro.innerHTML = `📍 <b>${skyLoc.name}</b> · ${cond}` + (sunTimesStr ? `<br>${sunTimesStr}` : "");
 }
 let sunTimesStr = "";
 function renderTimes() { // sun line + moon line + planet rise/set (recomputed on open & location change)
@@ -2231,7 +2305,7 @@ function initSkyControls() {
   sel.addEventListener("change", () => {
     if (sel.value === "__here") { useMyLocation(); return; }
     const c = CITIES.find(c => c[0] === sel.value);
-    if (c) { skyLoc = { name: c[0], lat: c[1], lon: c[2] }; localStorage.setItem("cosmic-skyloc", JSON.stringify(skyLoc)); renderTimes(); drawSkyMap(); renderSeason(); }
+    if (c) { skyLoc = { name: c[0], lat: c[1], lon: c[2] }; localStorage.setItem("cosmic-skyloc", JSON.stringify(skyLoc)); renderTimes(); renderHighlights(); drawSkyMap(); renderSeason(); }
   });
   document.getElementById("sky-here").addEventListener("click", useMyLocation);
   // time-travel controls
@@ -2312,10 +2386,11 @@ function drawSV() {
   const dpr = Math.min(devicePixelRatio || 1, 2), w = innerWidth, h = innerHeight, cx = w/2, cy = h/2;
   x.setTransform(dpr, 0, 0, dpr, 0, 0);
   const scene = svScene(), day = scene.day;
-  // background sky
+  const sunB = scene.list.find(b => b.kind === "sun") || { az: 0, alt: -90 };
+  const sky = skyColors(sunB.alt);
+  // background sky (day → twilight → night by Sun altitude)
   const g = x.createLinearGradient(0, 0, 0, h);
-  if (day) { g.addColorStop(0, "#1e3f78"); g.addColorStop(1, "#4a74b8"); }
-  else { g.addColorStop(0, "#05010f"); g.addColorStop(1, "#0a1636"); }
+  g.addColorStop(0, sky.top); g.addColorStop(1, sky.bot);
   x.fillStyle = g; x.fillRect(0, 0, w, h);
   // camera basis
   const Ld = dirVec(svAz, svAlt);
@@ -2329,6 +2404,20 @@ function drawSV() {
     if (fwd <= 0.04) return null;
     return [cx + dot3(v, Rt) / fwd * f, cy - dot3(v, Up) / fwd * f, fwd];
   };
+  // twilight glow toward the Sun's horizon (only when you're looking that way)
+  if (sky.glow > 0.02) {
+    const gp = project(sunB.az, Math.max(sunB.alt, -6));
+    if (gp) {
+      const rad = Math.max(w, h) * 0.95;
+      const rg = x.createRadialGradient(gp[0], gp[1], 0, gp[0], gp[1], rad);
+      const warm = sunB.alt > -6 ? "255,150,66" : "255,105,74";
+      rg.addColorStop(0, `rgba(${warm},${(0.36 * sky.glow).toFixed(3)})`);
+      rg.addColorStop(0.5, `rgba(${warm},${(0.12 * sky.glow).toFixed(3)})`);
+      rg.addColorStop(1, "rgba(0,0,0,0)");
+      x.globalCompositeOperation = "screen"; x.fillStyle = rg; x.fillRect(0, 0, w, h);
+      x.globalCompositeOperation = "source-over";
+    }
+  }
   // the Milky Way band (real ESO panorama; drawn before the ground, which covers
   // the below-horizon portion — so let segments continue well below the horizon)
   const jdv = skyJd();
@@ -2387,13 +2476,20 @@ function drawSV() {
   x.globalAlpha = 1;
   // deep-sky objects
   for (const [name, ra, dec, kind] of DEEPSKY) {
-    const hh = eqToHoriz(ra, dec, jdNow(), skyLoc.lat, skyLoc.lon); if (hh.alt < 0) continue;
+    const hh = eqToHoriz(ra, dec, jdv, skyLoc.lat, skyLoc.lon); if (hh.alt < 0) continue;
     const p = project(hh.az, hh.alt); if (!p) continue;
     const col = kind === "galaxy" ? "rgba(200,180,255,1)" : kind === "nebula" ? "rgba(255,150,190,1)" : "rgba(180,230,255,1)";
     x.globalAlpha = day ? .3 : .8; x.fillStyle = col; x.beginPath(); x.arc(p[0], p[1], 3.4, 0, 7); x.fill();
     x.globalAlpha = day ? .12 : .3; x.strokeStyle = col; x.lineWidth = 1; x.beginPath(); x.arc(p[0], p[1], 8, 0, 7); x.stroke();
     x.globalAlpha = day ? .4 : .7; x.fillStyle = "#c9b8e8"; x.font = "10px sans-serif"; x.fillText(name, p[0], p[1] - 12);
     x.globalAlpha = 1;
+  }
+  // active meteor-shower radiants (the point the meteors stream from)
+  if (!day) for (const { sh } of activeMeteorShowers()) {
+    const hh = eqToHoriz(sh[3], sh[4], jdv, skyLoc.lat, skyLoc.lon); if (hh.alt < 0) continue;
+    const p = project(hh.az, hh.alt); if (!p) continue;
+    x.fillStyle = "#ffd75e"; x.font = "16px sans-serif"; x.fillText("☄", p[0], p[1]);
+    x.globalAlpha = .8; x.font = "11px sans-serif"; x.fillText(sh[0] + " radiant", p[0], p[1] - 14); x.globalAlpha = 1;
   }
   // bodies (Sun/Moon/planets are shown even below the horizon, dimmed, so you can still find them)
   let nearest = null, nearDot = Math.cos(9 * D2R);
@@ -2705,6 +2801,50 @@ function renderPlanets() {
   });
   document.getElementById("planet-list").innerHTML = rows.join("");
 }
+// "Don't miss tonight": active meteor showers, Moon–planet & planet–planet conjunctions,
+// the ISS overhead, and notable Moon phases — computed live for the chosen location.
+function computeHighlights() {
+  const jd = jdNow(), lat = skyLoc.lat, lon = skyLoc.lon, out = [];
+  for (const { sh, days } of activeMeteorShowers()) {
+    const [name, , , ra, dec, zhr] = sh;
+    const h = eqToHoriz(ra, dec, jd, lat, lon);
+    const nd = Math.round(days);
+    const when = Math.abs(days) < 0.6 ? "peaks tonight" : nd > 0 ? `peaks in ${nd} day${nd > 1 ? "s" : ""}` : `peaked ${-nd} day${-nd > 1 ? "s" : ""} ago`;
+    const rad = h.alt > 5 ? `radiant ${CARD8[Math.round(h.az / 45) % 8]}, ${Math.round(h.alt)}° up` : "radiant low — best in the small hours";
+    out.push(`🌠 <b>${name}</b> meteor shower ${when} — up to ${zhr}/hr, ${rad}`);
+  }
+  const near = [];
+  for (const p of ["Venus", "Jupiter", "Saturn", "Mars", "Mercury"]) {
+    const s = angularSep("Moon", p, jd, lat, lon);
+    if (s < 5) near.push(`🌙 The <b>Moon</b> pairs up with <b>${p}</b> — just ${s.toFixed(1)}° apart`);
+  }
+  out.push(...near);
+  const planets = ["Mercury", "Venus", "Mars", "Jupiter", "Saturn"];
+  for (let i = 0; i < planets.length; i++) for (let j = i + 1; j < planets.length; j++) {
+    const s = angularSep(planets[i], planets[j], jd, lat, lon);
+    if (s < 3.5) out.push(`✨ <b>${planets[i]}</b> and <b>${planets[j]}</b> make a close pair — ${s.toFixed(1)}° apart`);
+  }
+  if (issFresh()) {
+    const la = issLookAngle(issState.lat, issState.lon, issState.altKm, lat, lon);
+    if (la.alt > 12) out.push(`🛰 The <b>ISS</b> is passing over right now — look ${CARD8[Math.round(la.az / 45) % 8]}, ${Math.round(la.alt)}° up`);
+  }
+  const age = moonAge(jd);
+  if (age < 1.4 || age > 28.1) out.push("🌑 <b>New Moon</b> — the darkest skies of the month, best for the Milky Way and faint stars");
+  else if (age > 13.6 && age < 16.3) out.push("🌕 <b>Full Moon</b> — bright all night; lovely for Moon-watching, harder for faint objects");
+  return out;
+}
+function renderHighlights() {
+  const items = computeHighlights();
+  const card = document.getElementById("highlights-card");
+  if (!items.length) {
+    card.innerHTML = `<div class="hlrow">🌌 No headline events tonight — a perfect excuse to just look up. From a dark spot, find the <span class="hltap" data-obj="The Milky Way">Milky Way core</span> low in the south.</div>`;
+  } else {
+    card.innerHTML = items.slice(0, 5).map(t => `<div class="hlrow">${t}</div>`).join("");
+  }
+  card.querySelectorAll(".hltap").forEach(el => el.addEventListener("click", () => {
+    const o = allObjects.find(a => a.name === el.dataset.obj); if (o) openPanel(o, o._el);
+  }));
+}
 const SEASONS = [ // by month index; northern-sky flavoured, with a nod south
   { m: [11, 0, 1], obj: "Orion the Hunter", text: "Winter's showpiece: <b>Orion</b> stands high in the evening — his three-star Belt points down-left to Sirius, the brightest star in the sky." },
   { m: [2, 3, 4], obj: "The Big Dipper", text: "Spring evenings put <b>the Big Dipper</b> almost overhead. Follow the two stars at the end of its bowl to find Polaris, the North Star." },
@@ -2741,6 +2881,7 @@ function openTonight(keepTime = false) {
     `<span style="color:var(--dim); font-size:12px">Day ${Math.round(moonAge())} of its 29.5-day cycle</span>` +
     `<div id="moon-times" style="margin-top:6px; font-size:12px; color:var(--accent)"></div>`;
   renderTimes();
+  renderHighlights();
   renderSeason();
   issTrail = [];
   drawIssMap(null, null);
