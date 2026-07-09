@@ -258,6 +258,12 @@
   }
   #p-cultures h3 { margin: 24px 0 6px; }
   #p-cultures .culintro { font-size: 13px; color: var(--dim); margin-bottom: 14px; line-height: 1.6; }
+  .dso-row {
+    display: flex; gap: 12px; background: var(--card); border: 1px solid var(--line);
+    border-radius: 12px; padding: 13px 16px; margin-bottom: 10px;
+  }
+  .dso-row .dso-k { flex-shrink: 0; width: 92px; font-size: 12px; font-weight: 700; color: #9db3d8; letter-spacing: .02em; padding-top: 1px; }
+  .dso-row .dso-v { flex: 1; font-size: 14px; line-height: 1.55; color: #d5e2f7; }
   .culrow {
     background: var(--card); border: 1px solid var(--line);
     border-left: 3px solid var(--accent);
@@ -3020,7 +3026,47 @@ const DEEPSKY = [
   ["Hyades", 4.470, 15.870, "cluster"], ["Double Cluster", 2.333, 57.140, "cluster"],
   ["Ring Nebula", 18.893, 33.029, "nebula"], ["Lagoon Nebula", 18.060, -24.383, "nebula"],
   ["Omega Centauri", 13.446, -47.479, "cluster"],
+  ["Hercules Cluster", 16.6949, 36.4613, "cluster"], ["Dumbbell Nebula", 19.9935, 22.7211, "nebula"],
+  ["Eagle Nebula", 18.3129, -13.7917, "nebula"], ["Sombrero Galaxy", 12.6665, -11.6231, "galaxy"],
+  ["Whirlpool Galaxy", 13.4979, 47.1953, "galaxy"], ["Triangulum Gal.", 1.5641, 30.6602, "galaxy"],
+  ["47 Tucanae", 0.4015, -72.0810, "cluster"], ["Wild Duck Cluster", 18.8512, -6.2717, "cluster"],
+  ["Ptolemy Cluster", 17.8975, -34.7928, "cluster"], ["Tarantula Nebula", 5.6432, -69.0906, "nebula"],
 ];
+// tap-to-learn info for deep-sky objects (Orion Nebula & Andromeda use their richer journey panels)
+const DEEPSKY_INFO = {
+  "Pleiades": { type: "Open star cluster", dist: "444 light-years", blurb: "The 'Seven Sisters' — a knot of hot blue stars born together only ~100 million years ago, still trailing wisps of gas.", tip: "Easy to the naked eye; dazzling in binoculars." },
+  "Beehive": { type: "Open star cluster", dist: "577 light-years", blurb: "Also called Praesepe — a swarm of around a thousand stars in the heart of Cancer.", tip: "A hazy glow to the eye; resolves into stars in binoculars." },
+  "Hyades": { type: "Open star cluster", dist: "153 light-years", blurb: "The nearest star cluster to us, forming the V-shaped face of Taurus. (Bright Aldebaran is a foreground star, not a member.)", tip: "Naked eye; the whole V fits in binoculars." },
+  "Double Cluster": { type: "Pair of star clusters", dist: "~7,500 light-years", blurb: "Two rich star clusters glittering side by side in Perseus — one of the finest sights in the northern sky.", tip: "A faint patch to the eye; superb in binoculars." },
+  "Ring Nebula": { type: "Planetary nebula", dist: "2,600 light-years", blurb: "A dying Sun-like star that has puffed off a glowing smoke-ring of gas — a preview of our own Sun's distant fate.", tip: "Needs a telescope — a tiny grey ring." },
+  "Lagoon Nebula": { type: "Emission nebula", dist: "4,100 light-years", blurb: "A vast cloud of glowing hydrogen and newborn stars in Sagittarius, straddling the Milky Way's core.", tip: "Faintly naked-eye from dark skies; lovely in binoculars." },
+  "Omega Centauri": { type: "Globular cluster", dist: "17,000 light-years", blurb: "The biggest and brightest globular cluster in our sky — roughly 10 million ancient stars packed into a ball.", tip: "A fuzzy 'star' to the eye; spectacular in a telescope." },
+  "Hercules Cluster": { type: "Globular cluster", dist: "22,000 light-years", blurb: "M13 — a magnificent sphere of several hundred thousand stars, the showpiece globular of the northern sky.", tip: "Just visible to the eye from dark skies; a telescope resolves it." },
+  "Dumbbell Nebula": { type: "Planetary nebula", dist: "1,360 light-years", blurb: "M27 — the glowing shell blown off by a dying star, shaped like an hourglass or apple core.", tip: "Binoculars show a faint patch; a telescope shows the shape." },
+  "Eagle Nebula": { type: "Emission nebula", dist: "5,700 light-years", blurb: "M16 — home of the famous 'Pillars of Creation', towering columns of gas where new stars are being born.", tip: "A telescope target; the pillars only show in long-exposure photos." },
+  "Sombrero Galaxy": { type: "Spiral galaxy", dist: "29 million light-years", blurb: "M104 — a galaxy seen almost edge-on, with a glowing core and a dark dust lane like the brim of a hat.", tip: "A telescope object." },
+  "Whirlpool Galaxy": { type: "Spiral galaxy", dist: "31 million light-years", blurb: "M51 — a classic face-on spiral caught in the act of tearing apart a smaller companion galaxy.", tip: "A telescope object; the spiral arms show in larger scopes." },
+  "Triangulum Gal.": { type: "Spiral galaxy", dist: "2.7 million light-years", blurb: "M33 — the third-largest galaxy in our Local Group, after Andromeda and the Milky Way.", tip: "A very dark sky and binoculars; a real challenge for the naked eye." },
+  "47 Tucanae": { type: "Globular cluster", dist: "13,000 light-years", blurb: "The second-brightest globular cluster in the whole sky — a jewel of the far-southern heavens.", tip: "A fuzzy 'star' to the naked eye; superb in a telescope." },
+  "Wild Duck Cluster": { type: "Open star cluster", dist: "6,200 light-years", blurb: "M11 — a dense, rich cluster whose stars fan out like a flight of ducks in formation.", tip: "Binoculars show a hazy patch; a telescope resolves it." },
+  "Ptolemy Cluster": { type: "Open star cluster", dist: "980 light-years", blurb: "M7 — a big, bright cluster in the Scorpion's tail, recorded by the astronomer Ptolemy back in 130 AD.", tip: "Easy naked-eye; beautiful in binoculars." },
+  "Tarantula Nebula": { type: "Emission nebula", dist: "160,000 light-years", blurb: "A colossal star factory in the Large Magellanic Cloud — if it were as close as the Orion Nebula, it would cast shadows.", tip: "Visible in the LMC from the far south; use binoculars." },
+};
+function openDeepSky(name) {
+  const info = DEEPSKY_INFO[name]; if (!info) return false;
+  dismissHint(); cosmosStop();
+  document.getElementById("p-kind").textContent = "DEEP-SKY OBJECT · " + info.type;
+  document.getElementById("p-name").textContent = name;
+  document.getElementById("p-tagline").textContent = info.blurb;
+  for (const id of ["p-imgwrap", "p-stats", "p-weight", "p-facts-h", "p-facts", "p-pattern", "p-sound"]) document.getElementById(id).style.display = "none";
+  document.getElementById("p-xlink").innerHTML = "";
+  const cul = document.getElementById("p-cultures"); cul.style.display = "block";
+  cul.innerHTML = `<div class="dso-row"><span class="dso-k">Distance</span><span class="dso-v">${info.dist}</span></div>`
+    + `<div class="dso-row"><span class="dso-k">How to see it</span><span class="dso-v">${info.tip}</span></div>`;
+  document.getElementById("panel-scroll").scrollTop = 0;
+  panel.classList.add("open");
+  return true;
+}
 const PLANET_COL = { Mercury: "#b9b0a0", Venus: "#fff2c8", Mars: "#ff7a4a", Jupiter: "#e8d3a8", Saturn: "#e6c67a" };
 // Major annual meteor showers: [name, peakMonth(1-12), peakDay, radiant RA h, Dec°, ZHR, parent]
 const METEOR_SHOWERS = [
@@ -3730,6 +3776,7 @@ function svTap(sx, sy) {
     const o = allObjects.find(a => a.name === pn);
     if (o) { openPanel(o, o._el); return; }
   }
+  if (openDeepSky(best.name)) return; // deep-sky objects → info panel
   showToast("✨ " + best.name + " — no story page for this one (yet)");
 }
 // drag: pan the view (drag mode) or nudge the compass offset (point mode); short tap = pick
