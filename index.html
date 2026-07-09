@@ -2502,6 +2502,14 @@ const STARS = [
   ["Pherkad",15.3455,71.834,3.05,0],["Yildun",17.5369,86.586,4.35,0],["Eps UMi",16.7660,82.037,4.21,0],
   ["Zeta UMi",15.7343,77.794,4.28,0],["Eps Cen",13.6647,-53.466,2.30,0],["Menkent",14.1113,-36.370,2.06,0],
   ["Porrima",12.6942,-1.449,2.74,0],["Vindemiatrix",13.0362,10.959,2.83,0],["Heze",13.5787,-0.596,3.38,0],
+  // completing the zodiac + Ophiuchus (J2000)
+  ["Sheratan",1.9107,20.808,2.64,0],["Mesarthim",1.8925,19.294,3.86,0],
+  ["Al Tarf",8.2753,9.186,3.53,0],["Asellus Aus",8.7449,18.154,3.94,0],["Asellus Bor",8.7215,21.469,4.66,0],["Acubens",8.9746,11.858,4.25,0],
+  ["Zubenelgenubi",14.8479,-16.042,2.75,0],["Zubeneschamali",15.2834,-9.383,2.61,0],["Brachium",15.0677,-25.282,3.29,0],
+  ["Deneb Algedi",21.7844,-16.127,2.85,0],["Dabih",20.3502,-14.781,3.05,0],["Algedi",20.3003,-12.508,3.57,0],["Nashira",21.6680,-16.662,3.68,0],
+  ["Sadalsuud",21.5259,-5.571,2.90,0],["Sadalmelik",22.0964,-0.320,2.94,0],["Skat",22.9109,-15.821,3.27,0],["Sadachbia",22.3611,-1.387,3.84,0],
+  ["Alrescha",2.0339,2.764,3.82,0],["Alpherg",1.5249,15.346,3.62,0],["Gamma Psc",23.2860,3.282,3.70,0],["Omega Psc",23.9866,6.863,4.01,0],
+  ["Sabik",17.1729,-15.725,2.43,0],["Cebalrai",17.7243,4.567,2.76,0],["Yed Prior",16.2393,-3.694,2.73,0],["Yed Post",16.3042,-4.692,3.22,0],["Zeta Oph",16.6191,-10.567,2.56,0],
 ];
 // Constellations as named stick figures — each gets a label at its centroid, and
 // (where one exists) a link to its fact panel in the journey.
@@ -2529,6 +2537,13 @@ const CONSTELLATIONS = [
   { name: "Ursa Minor", panel: null, lines: [["Polaris","Yildun"],["Yildun","Eps UMi"],["Eps UMi","Zeta UMi"],["Zeta UMi","Kochab"],["Kochab","Pherkad"],["Pherkad","Zeta UMi"]] },
   { name: "Centaurus", panel: null, lines: [["Alpha Cen","Hadar"],["Hadar","Eps Cen"],["Eps Cen","Menkent"]] },
   { name: "Virgo", panel: null, lines: [["Spica","Heze"],["Heze","Porrima"],["Porrima","Vindemiatrix"]] },
+  { name: "Aries", panel: null, lines: [["Hamal","Sheratan"],["Sheratan","Mesarthim"]] },
+  { name: "Cancer", panel: null, lines: [["Al Tarf","Asellus Aus"],["Asellus Aus","Asellus Bor"],["Asellus Aus","Acubens"]] },
+  { name: "Libra", panel: null, lines: [["Zubenelgenubi","Zubeneschamali"],["Zubenelgenubi","Brachium"]] },
+  { name: "Capricornus", panel: null, lines: [["Algedi","Dabih"],["Dabih","Deneb Algedi"],["Deneb Algedi","Nashira"],["Nashira","Dabih"]] },
+  { name: "Aquarius", panel: null, lines: [["Sadalsuud","Sadalmelik"],["Sadalmelik","Sadachbia"],["Sadalmelik","Skat"]] },
+  { name: "Pisces", panel: null, lines: [["Alrescha","Alpherg"],["Alrescha","Omega Psc"],["Omega Psc","Gamma Psc"]] },
+  { name: "Ophiuchus", panel: null, lines: [["Rasalhague","Yed Prior"],["Yed Prior","Yed Post"],["Yed Post","Zeta Oph"],["Zeta Oph","Sabik"],["Sabik","Cebalrai"],["Cebalrai","Rasalhague"]] },
 ];
 const CONST_LINES = CONSTELLATIONS.flatMap(c => c.lines);
 for (const c of CONSTELLATIONS) c.stars = [...new Set(c.lines.flat())];
@@ -2731,6 +2746,55 @@ const CONSTELLATION_LORE = {
     cultures: [
       { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Maiden", text: "Often Demeter, goddess of the harvest, or her daughter Persephone — when she withdraws to the underworld each year, the world falls into winter." },
       { flag: "🌾", who: "BABYLON", saw: "The Furrow", text: "A grain goddess holding the barley-ear Spica — tying these stars to the harvest for more than 3,000 years." },
+    ],
+  },
+  "Aries": {
+    tagline: "A modest zigzag of stars — but for the ancients, the ram that led the entire zodiac.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Golden Ram", text: "The flying ram with the Golden Fleece, which carried a boy to safety — its fleece later the prize Jason and the Argonauts sailed the world to win." },
+      { flag: "🏺", who: "BABYLON", saw: "The head of the zodiac", text: "Over 2,000 years ago Aries held the spring equinox, so it led all the signs — astronomers still call that crossing point 'the first point of Aries'." },
+    ],
+  },
+  "Cancer": {
+    tagline: "The faintest zodiac constellation — but it cradles the Beehive, a glittering swarm of stars visible to the naked eye from dark skies.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Crab", text: "Sent by the goddess Hera to nip at Heracles during his fight with the Hydra. Crushed underfoot, it was placed among the stars as a small reward for its loyalty." },
+      { flag: "🪲", who: "EGYPT & BABYLON", saw: "A scarab / a tortoise", text: "Older cultures saw a sacred scarab beetle or a tortoise here — a creature of the threshold between worlds." },
+    ],
+  },
+  "Libra": {
+    tagline: "The only zodiac sign that's an object, not a living thing — a balance, hanging in the autumn sky.",
+    cultures: [
+      { flag: "🏛️", who: "GREECE & ROME", saw: "The Scales of Justice", text: "The balance held by neighbouring Virgo, the goddess of justice — weighing the seasons at the autumn equinox, when day and night hang level." },
+      { flag: "🦂", who: "EARLIER SKYWATCHERS", saw: "The Scorpion's Claws", text: "These stars once belonged to Scorpius next door — their names still mean the 'northern' and 'southern claws' (Zubeneschamali, Zubenelgenubi)." },
+    ],
+  },
+  "Capricornus": {
+    tagline: "A faint cocked-hat of stars — one of the oldest constellations of all, a goat with the tail of a fish.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Sea-Goat", text: "Tied to the god Pan, who leapt into a river to flee a monster and turned his lower half to a fish in his panic — half goat, half fish forever." },
+      { flag: "🐐", who: "BABYLON", saw: "The Goat-Fish", text: "The sacred Suhur-mash, a goat-fish hybrid, charted here more than 3,000 years ago." },
+    ],
+  },
+  "Aquarius": {
+    tagline: "The Water-Bearer, pouring a stream of stars down toward the Southern Fish — an ancient sign of the rainy season.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Cup-Bearer", text: "The beautiful youth Ganymede, carried up to Olympus by Zeus's eagle to pour nectar for the gods — his flowing water still streaming down the sky." },
+      { flag: "🏺", who: "EGYPT & BABYLON", saw: "The bringer of the waters", text: "Its season coincided with the life-giving floods and rains — the god tipping his jar to renew the land." },
+    ],
+  },
+  "Pisces": {
+    tagline: "Two faint fish tied tail-to-tail by a cord — and the constellation where the Sun now crosses the spring equinox.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Two Fish", text: "Aphrodite and her son Eros became fish to escape the monster Typhon, knotting their tails together so they'd never be parted — the knot still marked by the star Alrescha." },
+      { flag: "🌍", who: "MODERN", saw: "The current 'first sign'", text: "Earth's slow wobble has carried the spring equinox out of Aries and into Pisces — so astronomically, this is where the Sun's year now begins." },
+    ],
+  },
+  "Ophiuchus": {
+    tagline: "The huge 'forgotten' 13th sign of the zodiac — a healer wrestling a giant serpent, which the Sun crosses every year.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Serpent-Bearer", text: "Asclepius, the healer so skilled he could raise the dead. His snake-entwined staff is still the symbol of medicine today — and the snake, Serpens, coils through his hands across the sky." },
+      { flag: "⛎", who: "MODERN", saw: "The 13th zodiac sign", text: "The Sun actually spends about 18 days crossing Ophiuchus each year — more than in neighbouring Scorpius — yet astrology leaves it off the wheel of signs." },
     ],
   },
 };
