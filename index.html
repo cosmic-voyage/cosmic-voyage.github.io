@@ -382,6 +382,19 @@
   .otd-text { font-size: 14px; line-height: 1.62; color: #d5e2f7; }
   .otd-text b { color: #fff; }
   .otd-none { font-size: 13.5px; color: var(--dim); line-height: 1.6; margin-bottom: 13px; }
+  .cu-row { display: flex; gap: 12px; align-items: flex-start; }
+  .cu-row + .cu-row { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .cu-when {
+    flex-shrink: 0; min-width: 62px; text-align: center; font-weight: 800; font-size: 11px;
+    color: #aef3ff; border: 1px solid rgba(174,243,255,.34); background: rgba(174,243,255,.08);
+    border-radius: 999px; padding: 4px 8px; margin-top: 1px; letter-spacing: .02em;
+  }
+  .cu-body { flex: 1; min-width: 0; }
+  .cu-title { font-size: 14.5px; color: #eaf1ff; line-height: 1.45; }
+  .cu-title b { color: #fff; }
+  .cu-sub { font-size: 12.5px; color: var(--dim); line-height: 1.55; margin-top: 3px; }
+  .cu-eclipse { margin-top: 14px; padding-top: 14px; border-top: 1px dashed rgba(174,243,255,.3); }
+  .cu-elsewhere { margin-top: 12px; font-size: 12px; color: var(--dim); line-height: 1.55; font-style: italic; }
   #p-sound { margin: 6px 0 4px; }
   .soundbtn {
     width: 100%; margin: 0 0 8px; padding: 13px; border-radius: 12px;
@@ -656,6 +669,11 @@
     <div class="tsec" id="highlights-sec">
       <h3>✨ Don't miss tonight</h3>
       <div class="tcard" id="highlights-card"></div>
+    </div>
+
+    <div class="tsec" id="comingup-sec">
+      <h3>🔭 Coming up — worth looking up for</h3>
+      <div class="tcard" id="comingup-card"></div>
     </div>
 
     <div class="tsec">
@@ -2746,7 +2764,7 @@ function initSkyControls() {
   sel.addEventListener("change", () => {
     if (sel.value === "__here") { useMyLocation(); return; }
     const c = CITIES.find(c => c[0] === sel.value);
-    if (c) { skyLoc = { name: c[0], lat: c[1], lon: c[2] }; localStorage.setItem("cosmic-skyloc", JSON.stringify(skyLoc)); renderTimes(); renderHighlights(); drawSkyMap(); renderSeason(); }
+    if (c) { skyLoc = { name: c[0], lat: c[1], lon: c[2] }; onLocationChange(); }
   });
   document.getElementById("sky-here").addEventListener("click", useMyLocation);
   // time-travel controls
@@ -2784,11 +2802,10 @@ function useMyLocation() {
   document.getElementById("sky-readout").textContent = "📍 Finding you…";
   navigator.geolocation.getCurrentPosition(pos => {
     skyLoc = { name: "Your location", lat: pos.coords.latitude, lon: pos.coords.longitude };
-    localStorage.setItem("cosmic-skyloc", JSON.stringify(skyLoc));
     const sel = document.getElementById("sky-city");
     if (![...sel.options].some(o => o.value === "Your location")) { const o = document.createElement("option"); o.textContent = "Your location"; o.value = "Your location"; sel.insertBefore(o, sel.firstChild); }
     sel.value = "Your location";
-    drawSkyMap(); renderSeason();
+    onLocationChange(); // full refresh (was only redrawing the chart + season before)
   }, () => showToast("📍 Couldn't get your location — pick a city instead"), { timeout: 9000, maximumAge: 600000 });
 }
 
@@ -3441,6 +3458,177 @@ function renderOnThisDay() {
     `<div class="otd-none">Nothing headline-making happened on this exact date — a fine day to make your own history and just look up. 🔭</div>` +
     `<div class="otd-row"><span class="otd-year">SOON</span><span class="otd-text"><b>${fmtD(next[0], next[1])}</b> · in ${days} day${days > 1 ? "s" : ""}: back in ${next[2]}, ${next[3]}</span></div>`;
 }
+/* ============================================================
+   COMING UP — the next genuinely OBSERVABLE events from the user's
+   chosen location (skyLoc): planet pairings, meteor peaks, oppositions,
+   greatest elongations, Moon phases, zero-shadow days, solstice/equinox,
+   and the next visible eclipse. All math validated in scratchpad.
+   ============================================================ */
+const CU_PLANETS = ["Mercury", "Venus", "Mars", "Jupiter", "Saturn"];
+const CU_BRIGHT = ["Venus", "Jupiter", "Mars", "Saturn", "Mercury"]; // rough brightness order
+const cuJd = d => d.getTime() / 86400000 + 2440587.5;
+const cuDate = jd => new Date((jd - 2440587.5) * 86400000);
+const cuElong = (p, jd) => angularSep(p, "Sun", jd, 0, 0); // geocentric-ish planet↔Sun angle
+function cuLocalHour(jd, lon) { return ((((jd + 0.5) % 1) * 24) + lon / 15 + 48) % 24; }
+function cuTimehint(h) {
+  if (h >= 17 && h < 22) return ", soon after sunset";
+  if (h >= 22 || h < 3) return ", late at night";
+  if (h >= 3 && h < 7) return ", in the pre-dawn sky";
+  return "";
+}
+function cuWhen(jd) {
+  const d = jd - jdNow();
+  if (d < 1) return "tonight";
+  if (d < 2) return "tomorrow";
+  if (d < 45) return "in " + Math.round(d) + "d";
+  const dt = cuDate(jd);
+  return dt.toLocaleDateString("en-US", d > 320 ? { month: "short", year: "numeric" } : { month: "short", day: "numeric" });
+}
+function cuRow(e) {
+  return `<div class="cu-row"><span class="cu-when">${cuWhen(e.jd)}</span>`
+    + `<div class="cu-body"><div class="cu-title">${e.icon} ${e.title}</div><div class="cu-sub">${e.sub}</div></div></div>`;
+}
+// closest OBSERVABLE approach for each bright-planet pair in the next ~11 weeks
+function cuPairings(lat, lon, events) {
+  const now = jdNow();
+  for (let i = 0; i < CU_PLANETS.length; i++) for (let j = i + 1; j < CU_PLANETS.length; j++) {
+    const a = CU_PLANETS[i], b = CU_PLANETS[j];
+    let minSep = 99, minDay = -1; // coarse daily pass to find the close approach
+    for (let d = 1; d < 80; d++) { const s = angularSep(a, b, now + d + 0.5, 0, 0); if (s < minSep) { minSep = s; minDay = d; } }
+    if (minSep > 3.5 || minDay < 0) continue;
+    let bestSep = 99, bestJd = null, bi = null; // fine pass: closest moment both are up in the dark
+    for (let dd = minDay - 1.5; dd <= minDay + 1.5; dd += 0.5 / 24) {
+      const jd = now + dd, sun = bodyAltAz("Sun", jd, lat, lon); if (sun.alt > -6) continue;
+      const A = bodyAltAz(a, jd, lat, lon), B = bodyAltAz(b, jd, lat, lon); if (A.alt < 7 || B.alt < 7) continue;
+      const s = angularSep(a, b, jd, lat, lon); if (s < bestSep) { bestSep = s; bestJd = jd; bi = { A, B }; }
+    }
+    if (!bestJd || bestSep > 4) continue; // never both up in the dark from here → not observable
+    const bright = CU_BRIGHT.indexOf(a) <= CU_BRIGHT.indexOf(b) ? a : b;
+    const bp = bright === a ? bi.A : bi.B;
+    const dir = CARD8[Math.round((((bp.az % 360) + 360) % 360) / 45) % 8];
+    events.push({
+      jd: bestJd, icon: "🪐", title: `<b>${a}</b> & <b>${b}</b> pair up`,
+      sub: `Just ${bestSep.toFixed(1)}° apart — look ${dir}, ${Math.round(bp.alt)}° up${cuTimehint(cuLocalHour(bestJd, lon))}`,
+    });
+  }
+}
+// next couple of meteor-shower peaks, with radiant height + Moon honesty for this latitude
+function cuMeteors(lat, lon, events) {
+  const list = METEOR_SHOWERS.map(sh => ({ sh, days: meteorDaysToPeak(sh) })).filter(x => x.days >= 0 && x.days < 95).sort((a, b) => a.days - b.days);
+  for (const { sh, days } of list.slice(0, 2)) {
+    const [name, , , ra, dec, zhr] = sh, peakJd = jdNow() + days;
+    let maxAlt = -90; for (let h = 0; h < 24; h++) { const hh = eqToHoriz(ra, dec, peakJd - 0.5 + h / 24, lat, lon); if (hh.alt > maxAlt) maxAlt = hh.alt; }
+    if (maxAlt < 5) continue; // radiant never really rises from here
+    const rq = maxAlt > 45 ? "radiant rides high — excellent from your spot" : maxAlt > 20 ? `radiant reaches ${Math.round(maxAlt)}° — a decent showing` : `radiant stays low (${Math.round(maxAlt)}°) — modest from your latitude`;
+    const illum = moonIllum(peakJd);
+    const moon = illum < 0.35 ? "and dark skies make this a good year" : illum > 0.65 ? "but a bright Moon will drown out the fainter ones" : "with a bit of moonlight about";
+    events.push({ jd: peakJd, icon: "🌠", title: `<b>${name}</b> meteor shower peaks`, sub: `Up to ${zhr}/hr — ${rq}, ${moon}` });
+  }
+}
+// next opposition of an outer planet (up all night, biggest & brightest of the year)
+function cuOppositions(lat, lon, events) {
+  for (const p of ["Mars", "Jupiter", "Saturn"]) {
+    let best = 0, bjd = null;
+    for (let d = 1; d < 520; d++) { const e = cuElong(p, jdNow() + d); if (e > best) { best = e; bjd = d; } }
+    if (best > 150 && bjd && bjd < 300) {
+      const jd = jdNow() + bjd;
+      events.push({ jd, icon: "🔭", title: `<b>${p}</b> at opposition`, sub: `Biggest, brightest and up all night — the best time all year to see ${p}` });
+    }
+  }
+}
+// morning vs evening apparition for an inner planet at greatest elongation
+function cuIsEvening(p, jd, lat, lon) {
+  let ev = -90, morn = -90;
+  for (let h = 0; h < 24; h += 0.25) {
+    const j = jd + h / 24, s = bodyAltAz("Sun", j, lat, lon), pl = bodyAltAz(p, j, lat, lon);
+    if (s.alt < 0 && s.alt > -14 && pl.alt > 0) { if (Math.sin(s.az * D2R) < 0) { if (pl.alt > ev) ev = pl.alt; } else { if (pl.alt > morn) morn = pl.alt; } }
+  }
+  return ev >= morn;
+}
+function cuElongations(lat, lon, events) {
+  for (const p of ["Mercury", "Venus"]) {
+    let best = 0, bjd = null;
+    for (let d = 5; d < 240; d++) { const e = cuElong(p, jdNow() + d); if (e > best) { best = e; bjd = d; } }
+    if (bjd && best > (p === "Venus" ? 38 : 16)) {
+      const jd = jdNow() + bjd, ev = cuIsEvening(p, jd, lat, lon);
+      events.push({ jd, icon: "✨", title: `<b>${p}</b> at its best`, sub: `Greatest elongation, ${Math.round(best)}° from the Sun — ${ev ? "an evening star, low in the west after sunset" : "a morning star, low in the east before dawn"}` });
+    }
+  }
+}
+function cuMoon(events) {
+  const now = jdNow(); let nn = null, nf = null, prev = moonAge(now);
+  for (let d = 0.25; d < 32; d += 0.25) {
+    const jd = now + d, age = moonAge(jd);
+    if (!nf && prev < 14.765 && age >= 14.765) nf = jd;
+    if (!nn && age < prev) nn = jd; // age wrapped 29.5 → 0 = new Moon
+    prev = age; if (nn && nf) break;
+  }
+  if (nn) events.push({ jd: nn, icon: "🌑", title: "<b>New Moon</b>", sub: "The darkest skies of the month — ideal for the Milky Way, faint stars and meteors" });
+  if (nf) events.push({ jd: nf, icon: "🌕", title: "<b>Full Moon</b>", sub: "Bright all night — lovely for Moon-watching, though it washes out fainter objects" });
+}
+function cuSunEvents(lat, lon, events) {
+  const now = jdNow();
+  const dec = jd => Math.asin(Math.sin(23.4393 * D2R) * Math.sin(sunEcliptic(jd).lon * D2R)) * R2D;
+  if (Math.abs(lat) <= 23.44) { // zero-shadow day only exists in the tropics
+    let prev = dec(now) - lat;
+    for (let d = 1; d < 400; d++) { const cur = dec(now + d) - lat; if ((prev < 0) !== (cur < 0)) { events.push({ jd: now + d, icon: "🔆", title: "<b>Zero-shadow day</b>", sub: "At noon the Sun passes straight overhead and vertical objects cast no shadow at all — a tropics-only moment" }); break; } prev = cur; }
+  }
+  let pd = dec(now), ps = dec(now + 1) - dec(now); // next equinox or solstice
+  for (let d = 1; d < 380; d++) {
+    const cd = dec(now + d), s = dec(now + d + 1) - cd;
+    if ((pd < 0) !== (cd < 0)) { cuAddSun(events, now + d, cd > pd ? "March equinox" : "September equinox", lat, "equinox"); break; }
+    if ((ps > 0) !== (s > 0)) { cuAddSun(events, now + d, cd > 0 ? "June solstice" : "December solstice", lat, "solstice"); break; }
+    pd = cd; ps = s;
+  }
+}
+function cuAddSun(events, jd, name, lat, kind) {
+  let sub;
+  if (kind === "equinox") sub = "Day and night are equal length; the Sun rises due east and sets due west";
+  else {
+    const north = name.startsWith("June"), summerHere = (north && lat >= 0) || (!north && lat < 0);
+    sub = Math.abs(lat) < 12 ? "The Sun reaches its yearly extreme — though near the equator your day length barely changes" : summerHere ? "Your longest day and shortest night of the year" : "Your shortest day and longest night of the year";
+  }
+  events.push({ jd, icon: kind === "solstice" ? "☀️" : "⚖️", title: `<b>${name}</b>`, sub });
+}
+const CU_ECLIPSES = [ // verified against timeanddate / NASA (2026-07)
+  { date: "2026-08-12", type: "Total solar eclipse", where: "Greenland, Iceland and northern Spain", kind: "solar", box: [30, 80, -70, 20], famous: true },
+  { date: "2027-02-06", type: "Annular solar eclipse", where: "the south Atlantic, southern Africa", kind: "solar", box: [-55, 5, -80, 55] },
+  { date: "2027-08-02", type: "Total solar eclipse", where: "southern Spain, Egypt and Saudi Arabia — the longest totality of the century (6+ min)", kind: "solar", box: [10, 45, -15, 60], famous: true },
+  { date: "2028-07-22", type: "Total solar eclipse", where: "Australia (Sydney sits right on the path), with a partial across Southeast Asia", kind: "solar", box: [-60, 25, 60, 200] },
+  { date: "2028-12-31", type: "Total lunar eclipse (a 'blood Moon')", where: "Asia, Australia, Europe and Africa", kind: "lunar", ut: "2028-12-31T16:52:00Z" },
+];
+function cuEclipseInfo(lat, lon) {
+  const now = jdNow(); let visible = null, elsewhere = null;
+  for (const e of CU_ECLIPSES) {
+    const jd = cuJd(new Date(e.date + "T12:00:00Z")); if (jd < now - 1) continue;
+    let vis;
+    if (e.kind === "lunar") vis = bodyAltAz("Moon", cuJd(new Date(e.ut)), lat, lon).alt > 0;
+    else { const [a1, a2, o1, o2] = e.box, L = ((lon + 540) % 360) - 180; vis = lat >= a1 && lat <= a2 && L >= o1 && L <= o2; }
+    if (vis && !visible) visible = { e, jd };
+    if (!vis && e.famous && !elsewhere) elsewhere = { e, jd };
+    if (visible) break;
+  }
+  return { visible, elsewhere };
+}
+function renderComingUp() {
+  const card = document.getElementById("comingup-card"); if (!card) return;
+  const lat = skyLoc.lat, lon = skyLoc.lon, events = [];
+  cuPairings(lat, lon, events); cuMeteors(lat, lon, events); cuOppositions(lat, lon, events);
+  cuElongations(lat, lon, events); cuMoon(events); cuSunEvents(lat, lon, events);
+  events.sort((a, b) => a.jd - b.jd);
+  const near = events.filter(e => e.jd - jdNow() < 165).slice(0, 6);
+  let html = near.length ? near.map(cuRow).join("")
+    : `<div class="cu-sub">Quiet skies ahead from here for a little while — a good stretch to just get to know the constellations. Check back as the weeks roll on.</div>`;
+  const ecl = cuEclipseInfo(lat, lon);
+  if (ecl.visible) html += `<div class="cu-eclipse">` + cuRow({ jd: ecl.visible.jd, icon: "🌘", title: `<b>${ecl.visible.e.type}</b>`, sub: `Visible from your location — best across ${ecl.visible.e.where}. Worth marking your calendar.` }) + `</div>`;
+  if (ecl.elsewhere) html += `<div class="cu-elsewhere">🌍 Elsewhere in the world: a ${ecl.elsewhere.e.type.toLowerCase()} on ${cuDate(ecl.elsewhere.jd).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}, best from ${ecl.elsewhere.e.where} — not visible from here.</div>`;
+  card.innerHTML = html;
+}
+// one place every location change funnels through, so nothing is ever left stale
+function onLocationChange() {
+  localStorage.setItem("cosmic-skyloc", JSON.stringify(skyLoc));
+  renderTimes(); renderHighlights(); renderComingUp(); drawSkyMap(); renderSeason();
+}
 function openTonight(keepTime = false) {
   document.getElementById("tonight-date").textContent =
     "Live · " + new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
@@ -3457,6 +3645,7 @@ function openTonight(keepTime = false) {
     `<div id="moon-times" style="margin-top:6px; font-size:12px; color:var(--accent)"></div>`;
   renderTimes();
   renderHighlights();
+  renderComingUp();
   renderSeason();
   renderOnThisDay();
   issTrail = [];
