@@ -251,6 +251,36 @@
   }
   #panel .fact .star { color: #ffd75e; flex-shrink: 0; margin-top: 1px; }
 
+  #p-pattern {
+    width: 100%; height: 180px; display: block; margin: 0 0 20px;
+    border-radius: 14px; border: 1px solid var(--line);
+    background: #060617;
+  }
+  #p-cultures h3 { margin: 24px 0 6px; }
+  #p-cultures .culintro { font-size: 13px; color: var(--dim); margin-bottom: 14px; line-height: 1.6; }
+  .culrow {
+    background: var(--card); border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 12px; padding: 13px 16px; margin-bottom: 11px;
+  }
+  .culrow .culwho { font-size: 12px; font-weight: 700; color: #cdd9ef; letter-spacing: .02em; display: flex; align-items: center; gap: 8px; }
+  .culrow .culflag { font-size: 17px; }
+  .culrow .culsaw { font-size: 15.5px; font-weight: 800; color: #ffe9a8; margin: 5px 0 4px; }
+  .culrow .cultext { font-size: 13.5px; line-height: 1.6; color: #d5e2f7; }
+  #cul-journey {
+    margin-top: 14px; padding: 11px 18px; font-size: 12.5px;
+    background: rgba(122,162,255,.14); border: 1px solid var(--accent);
+    color: #eaf1ff; border-radius: 999px; cursor: pointer; font-weight: 600;
+    width: 100%;
+  }
+  #cul-journey:hover { background: rgba(122,162,255,.24); }
+  #p-xlink .xculture {
+    display: inline-block; margin: 2px 0 4px; padding: 10px 16px; font-size: 12.5px;
+    background: rgba(122,162,255,.12); border: 1px solid var(--accent);
+    color: #eaf1ff; border-radius: 999px; cursor: pointer; font-weight: 600;
+  }
+  #p-xlink .xculture:hover { background: rgba(122,162,255,.22); }
+
   #p-imgwrap {
     margin: 0 0 22px; border-radius: 14px; overflow: hidden;
     border: 1px solid var(--line); background: rgba(0,0,0,.35); display: none;
@@ -706,11 +736,14 @@
     <div class="kind" id="p-kind"></div>
     <h2 id="p-name"></h2>
     <div class="tagline" id="p-tagline"></div>
+    <canvas id="p-pattern" style="display:none"></canvas>
     <div id="p-imgwrap"><img id="p-img" alt=""><div class="credit" id="p-credit"></div></div>
     <div class="stats" id="p-stats"></div>
     <div id="p-weight"></div>
-    <h3>✦ Fun facts</h3>
+    <h3 id="p-facts-h">✦ Fun facts</h3>
     <div id="p-facts"></div>
+    <div id="p-xlink"></div>
+    <div id="p-cultures" style="display:none"></div>
   </div>
 </aside>
 
@@ -1585,6 +1618,17 @@ addEventListener("keydown", (e) => {
 const panel = document.getElementById("panel");
 function openPanel(o, btn) {
   dismissHint();
+  // restore the standard object layout (the culture panel hides these)
+  document.getElementById("p-pattern").style.display = "none";
+  document.getElementById("p-cultures").style.display = "none";
+  document.getElementById("p-stats").style.display = "";
+  document.getElementById("p-weight").style.display = "";
+  document.getElementById("p-facts-h").style.display = "";
+  document.getElementById("p-facts").style.display = "";
+  const lk = JOURNEY_TO_LORE[o.name]; // constellation objects link across to their culture page
+  document.getElementById("p-xlink").innerHTML = lk
+    ? `<span class="xculture">🌍 See ${o.name} across cultures →</span>` : "";
+  if (lk) document.querySelector("#p-xlink .xculture").onclick = () => openConstellation(lk);
   document.getElementById("p-kind").textContent = o.kind;
   document.getElementById("p-name").textContent = o.name;
   document.getElementById("p-tagline").textContent = o.tagline;
@@ -2164,6 +2208,182 @@ function constLabelPos(c, jd, lat, lon) {
   if (up < Math.max(2, Math.ceil(c.stars.length * 0.6))) return null;
   const m = Math.hypot(vx, vy, vz) || 1;
   return { az: norm360(Math.atan2(vx / m, vy / m) * R2D), alt: Math.asin(vz / m) * R2D };
+}
+
+/* ============================================================
+   CONSTELLATIONS ACROSS CULTURES — the same stars, read a hundred
+   ways by peoples all over the world and across thousands of years.
+   ============================================================ */
+const CONSTELLATION_LORE = {
+  "Orion": {
+    tagline: "The most recognisable figure in the sky — and almost every culture on Earth drew something into it.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "Orion the Hunter", text: "A giant huntsman with a jewelled belt and sword. A scorpion killed him, so the gods set the two at opposite ends of the sky — which is why Orion sinks below the horizon as Scorpius rises." },
+      { flag: "🏺", who: "ANCIENT EGYPT", saw: "Sah, home of Osiris", text: "These stars were the celestial soul of Osiris, god of death and rebirth. Their dawn reappearance helped priests time the life-giving flood of the Nile." },
+      { flag: "🐉", who: "CHINA", saw: "Shēn, the White Tiger", text: "The belt and its neighbours formed Shēn (參), one of the great lunar mansions and a shoulder of the White Tiger of the West." },
+      { flag: "🥝", who: "MĀORI · AOTEAROA", saw: "Tautoru — 'the three'", text: "The belt is Tautoru, a key seasonal marker that rises ahead of Matariki (the Pleiades) to signal the turning of the year." },
+      { flag: "🪃", who: "ABORIGINAL AUSTRALIA", saw: "A canoe of brothers", text: "In Yolŋu tradition the belt and sword are Djulpan — young fishermen swept up into the sky in their canoe after breaking a law of the sea." },
+    ],
+  },
+  "Scorpius": {
+    tagline: "A rare case where the sky really does look like its name — a long, curving sting low in the south.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Scorpion", text: "The very creature whose sting killed the hunter Orion. The gods placed them on opposite sides of the sky so the two would never meet again." },
+      { flag: "🎣", who: "POLYNESIA", saw: "Māui's Fishhook", text: "To Māori and Hawaiians this curve is the magic hook — Te Matau a Māui — that the demigod used to haul whole islands up out of the ocean." },
+      { flag: "🐉", who: "CHINA", saw: "Heart of the Azure Dragon", text: "The stars belonged to the Azure Dragon of the East, and red Antares was the 'Fire Star' (火), the dragon's beating heart." },
+      { flag: "🌴", who: "JAVA · INDONESIA", saw: "The leaning coconut tree", text: "Javanese skywatchers saw Banyakangrem, a brooding swan — or, in other tellings, a coconut palm bent over in the wind." },
+    ],
+  },
+  "Big Dipper": {
+    tagline: "Never sets from northern latitudes, forever wheeling around the pole — so nearly every northern people gave it a name.",
+    cultures: [
+      { flag: "🐻", who: "GREECE & ROME", saw: "The Great Bear", text: "Part of Ursa Major — the nymph Callisto, turned into a bear and set among the stars. The 'dipper' is really the bear's hindquarters and long tail." },
+      { flag: "🥄", who: "BRITAIN & AMERICA", saw: "The Plough / Big Dipper", text: "The British saw a farmer's plough; Americans a drinking gourd — which escaping slaves followed north to freedom, 'the Drinking Gourd' pointing the way." },
+      { flag: "🐉", who: "CHINA", saw: "The Northern Dipper", text: "Běidǒu (北斗), a celestial measuring-ladle at the very heart of imperial astronomy, circling the pole like the hand of a great clock." },
+      { flag: "🕉️", who: "INDIA", saw: "The Seven Sages", text: "The Saptarishi — the seven great seers of Hindu tradition, the wise rishis to whom the sacred hymns were first revealed." },
+      { flag: "🍁", who: "NATIVE AMERICA", saw: "A bear and its hunters", text: "To the Iroquois the bowl is a bear and the handle stars are hunters chasing it. Each autumn they catch it, and its blood tints the falling leaves red." },
+    ],
+  },
+  "Southern Cross": {
+    tagline: "The banner of the southern sky — small, brilliant, and pointing the way to a pole with no star to mark it.",
+    cultures: [
+      { flag: "🧭", who: "MODERN NAVIGATORS", saw: "The Southern Cross", text: "A signpost to the invisible south celestial pole, and so beloved it flies on five national flags — Australia, New Zealand, Brazil, Samoa and Papua New Guinea." },
+      { flag: "🦤", who: "ABORIGINAL AUSTRALIA", saw: "Head of the Emu", text: "Here the picture is drawn not by stars but by darkness — the black Coalsack nebula beside the Cross is the head of a great emu stretching across the Milky Way." },
+      { flag: "⚓", who: "MĀORI · AOTEAROA", saw: "Te Punga, the Anchor", text: "The anchor of Tama-rereti's great sky-canoe, holding it steady as it sails the river of stars." },
+      { flag: "🏔️", who: "ANDES · INCA", saw: "The Chakana", text: "The sacred stepped cross, symbol of the three worlds. The Inca read the dark clouds around it as celestial animals — a llama, a toad, a serpent." },
+    ],
+  },
+  "Cassiopeia": {
+    tagline: "An unmistakable 'W' (or 'M') that never sets in the north — the vain queen circling forever upside-down.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Vain Queen", text: "Cassiopeia boasted she was more beautiful than the sea nymphs, so Poseidon bound her to her throne and set it wheeling round the pole — hanging upside-down half of every night." },
+      { flag: "🐫", who: "ARABIA", saw: "The Tinted Hand / a camel", text: "Early Arab astronomers saw a hand stained with henna, or a kneeling camel, among these same five bright stars." },
+      { flag: "🐉", who: "CHINA", saw: "A charioteer and a road", text: "The 'W' fell across several asterisms, including Wángliáng, a legendary charioteer, and Gédào, a raised imperial roadway among the stars." },
+    ],
+  },
+  "Sagittarius": {
+    tagline: "Aim here and you're looking straight into the heart of our galaxy — the richest starfield in the whole sky.",
+    cultures: [
+      { flag: "🏹", who: "ANCIENT GREECE", saw: "The Archer", text: "A centaur drawing his bow, arrow trained squarely on the heart of the neighbouring Scorpion, ready to avenge the hunter Orion." },
+      { flag: "🫖", who: "MODERN WEST", saw: "The Teapot", text: "Its brightest stars form an unmistakable teapot — and the Milky Way's glow rises from the spout exactly like a puff of steam." },
+      { flag: "🐢", who: "CHINA", saw: "The Dipper and the Ox", text: "These stars lay within the Black Tortoise of the North, spanning the lunar mansions of the Dǒu (Dipper) and the Niú (Ox)." },
+    ],
+  },
+  "Cygnus": {
+    tagline: "A great cross of stars flying down the Milky Way — a swan with wings spread wide.",
+    cultures: [
+      { flag: "🦢", who: "ANCIENT GREECE", saw: "The Swan", text: "Zeus in disguise, or the grieving friend of Phaethon who was turned into a swan and set among the stars — flying eternally along the river of the Milky Way." },
+      { flag: "✝️", who: "MODERN WEST", saw: "The Northern Cross", text: "Its stars form a large upright cross that stands neatly on the horizon around Christmas time in the northern sky." },
+      { flag: "🐓", who: "ARABIA", saw: "The Hen", text: "To early Arab astronomers this was al-Dajājah, the hen, striding across the heavens." },
+    ],
+  },
+  "Leo": {
+    tagline: "One of the few constellations that genuinely looks like its namesake — a crouching lion with a bold, backwards-question-mark mane.",
+    cultures: [
+      { flag: "🦁", who: "ANCIENT GREECE", saw: "The Nemean Lion", text: "The monstrous lion with an impenetrable hide that Heracles had to strangle with his bare hands as the first of his twelve labours." },
+      { flag: "🏛️", who: "MESOPOTAMIA", saw: "The Great Lion", text: "One of the oldest constellations of all — Babylonian and Persian skywatchers saw a lion here more than four thousand years ago." },
+      { flag: "🐉", who: "CHINA", saw: "Part of the Vermillion Bird", text: "Leo's stars were scattered among the Vermillion Bird of the South and the coils of the Yellow Dragon." },
+    ],
+  },
+  "Gemini": {
+    tagline: "Two bright stars, Castor and Pollux, marking the heads of a pair of celestial twins side by side.",
+    cultures: [
+      { flag: "👯", who: "ANCIENT GREECE", saw: "The Twins", text: "Castor and Pollux, the Dioscuri — one mortal, one immortal. Inseparable brothers and protectors of sailors, granted a shared place in the sky forever." },
+      { flag: "🦚", who: "ARABIA", saw: "Two peacocks", text: "Early Arab astronomers saw a pair of peacocks, or the outstretched paws of their enormous celestial Lion, in these stars." },
+      { flag: "🐉", who: "CHINA", saw: "The Well and the Ghost", text: "The twins' stars fell within the White Tiger of the West and the Vermillion Bird's mansion of the Well (Jǐng)." },
+    ],
+  },
+  "Pegasus": {
+    tagline: "A huge, near-empty square of sky marking the autumn nights — the body of a winged horse flying upside-down.",
+    cultures: [
+      { flag: "🐴", who: "ANCIENT GREECE", saw: "The Winged Horse", text: "Pegasus, sprung from the blood of the slain Medusa, who carried heroes into battle and bore the thunderbolts of Zeus." },
+      { flag: "⬜", who: "MODERN WEST", saw: "The Great Square", text: "Four stars mark a vast, almost starless box — a handy signpost that the autumn sky has arrived." },
+      { flag: "🐎", who: "ARABIA", saw: "The Greater Horse", text: "Al-Faras al-Aʿẓam, the greater horse, galloping across the heavens." },
+    ],
+  },
+  "Summer Triangle": {
+    tagline: "Not one constellation but a signpost — three brilliant stars from three different constellations, high overhead on summer nights.",
+    cultures: [
+      { flag: "🔭", who: "MODERN WEST", saw: "The Summer Triangle", text: "Vega (in Lyra, the harp), Deneb (in Cygnus, the swan) and Altair (in Aquila, the eagle) — three of summer's brightest stars, used to find your way around the sky." },
+      { flag: "🎋", who: "CHINA & JAPAN", saw: "The Weaver and the Cowherd", text: "In the Qīxī / Tanabata legend, Vega is a weaver girl and Altair a cowherd — lovers separated by the Milky Way river, allowed to meet just once a year across a bridge of magpies." },
+      { flag: "🦅", who: "POLYNESIA", saw: "Part of a great sky-bird", text: "Across the Pacific these bright stars served as navigation marks, some seen as pieces of a great bird flying the Milky Way." },
+    ],
+  },
+};
+// journey object  <->  lore constellation
+const JOURNEY_TO_LORE = { "Orion the Hunter": "Orion", "The Big Dipper": "Big Dipper", "Cassiopeia": "Cassiopeia", "The Southern Cross": "Southern Cross", "Scorpius": "Scorpius" };
+const LORE_TO_JOURNEY = {}; for (const k in JOURNEY_TO_LORE) LORE_TO_JOURNEY[JOURNEY_TO_LORE[k]] = k;
+
+// Draw a constellation's stick-figure into the panel canvas (shape only, fitted to view)
+function drawPattern(cname) {
+  const c = document.getElementById("p-pattern"), x = c.getContext("2d");
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const cw = c.clientWidth || 340, ch = 180;
+  c.width = cw * dpr; c.height = ch * dpr; x.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const g = x.createLinearGradient(0, 0, 0, ch);
+  g.addColorStop(0, "#0a0a20"); g.addColorStop(1, "#05050f");
+  x.fillStyle = g; x.fillRect(0, 0, cw, ch);
+  const cst = CONSTELLATIONS.find(k => k.name === cname);
+  if (!cst) return;
+  const ref = STAR_POS[cst.stars[0]]; if (!ref) return;
+  const ra0 = ref[0] * 15, dec0 = ref[1], cd = Math.cos(dec0 * D2R);
+  const pts = {}; let minx = 1e9, maxx = -1e9, miny = 1e9, maxy = -1e9;
+  for (const n of cst.stars) {
+    const p = STAR_POS[n]; if (!p) continue;
+    let ra = p[0] * 15, d = ra - ra0; if (d > 180) ra -= 360; else if (d < -180) ra += 360; // unwrap across 0h
+    const px = (ra - ra0) * cd, py = -(p[1] - dec0);
+    pts[n] = [px, py];
+    minx = Math.min(minx, px); maxx = Math.max(maxx, px); miny = Math.min(miny, py); maxy = Math.max(maxy, py);
+  }
+  const pad = 30;
+  const s = Math.min((cw - 2 * pad) / Math.max(1e-6, maxx - minx), (ch - 2 * pad) / Math.max(1e-6, maxy - miny)) * 0.92;
+  const ox = cw / 2 - (minx + maxx) / 2 * s, oy = ch / 2 - (miny + maxy) / 2 * s;
+  const X = p => [ox + p[0] * s, oy + p[1] * s];
+  x.strokeStyle = "rgba(130,180,255,.45)"; x.lineWidth = 1.3;
+  for (const [a, b] of cst.lines) {
+    if (!pts[a] || !pts[b]) continue;
+    const A = X(pts[a]), B = X(pts[b]);
+    x.beginPath(); x.moveTo(A[0], A[1]); x.lineTo(B[0], B[1]); x.stroke();
+  }
+  for (const n in pts) {
+    const P = X(pts[n]);
+    x.globalAlpha = .3; x.fillStyle = "#cfe0ff"; x.beginPath(); x.arc(P[0], P[1], 4.5, 0, 7); x.fill();
+    x.globalAlpha = 1; x.fillStyle = "#fff"; x.beginPath(); x.arc(P[0], P[1], 2.1, 0, 7); x.fill();
+  }
+}
+
+// Open the culture panel for a constellation (reuses the object panel shell)
+function openConstellation(name) {
+  const lore = CONSTELLATION_LORE[name]; if (!lore) return false;
+  dismissHint();
+  document.getElementById("p-kind").textContent = "CONSTELLATION · seen around the world";
+  document.getElementById("p-name").textContent = name;
+  document.getElementById("p-tagline").textContent = lore.tagline;
+  // hide the object-only bits
+  document.getElementById("p-imgwrap").style.display = "none";
+  document.getElementById("p-stats").style.display = "none";
+  document.getElementById("p-weight").style.display = "none";
+  document.getElementById("p-facts-h").style.display = "none";
+  document.getElementById("p-facts").style.display = "none";
+  document.getElementById("p-xlink").innerHTML = "";
+  document.getElementById("p-pattern").style.display = "block";
+  const cul = document.getElementById("p-cultures");
+  cul.style.display = "block";
+  const jn = LORE_TO_JOURNEY[name];
+  cul.innerHTML = '<h3>🌍 One sky, many stories</h3>'
+    + '<div class="culintro">Humans have watched these same stars for tens of thousands of years — and drawn wildly different pictures in them.</div>'
+    + lore.cultures.map(c =>
+        `<div class="culrow"><div class="culwho"><span class="culflag">${c.flag}</span>${c.who}</div>`
+        + `<div class="culsaw">${c.saw}</div><div class="cultext">${c.text}</div></div>`
+      ).join("")
+    + (jn ? `<button id="cul-journey">✦ Explore ${jn} in the journey →</button>` : "");
+  drawPattern(name);
+  document.getElementById("panel-scroll").scrollTop = 0;
+  panel.classList.add("open");
+  if (jn) document.getElementById("cul-journey").onclick = () => {
+    const o = allObjects.find(a => a.name === jn); if (o) openPanel(o, o._el);
+  };
+  return true;
 }
 
 // The Milky Way band: points along the galactic equator, brightest toward the core.
@@ -2846,6 +3066,7 @@ function svTap(sx, sy) {
     if (d > bestD) { bestD = d; best = c; }
   }
   if (!best) return;
+  if (openConstellation(best.name)) return; // constellations → cross-cultural story page
   const pn = SKY_PANEL[best.name];
   if (pn) {
     const o = allObjects.find(a => a.name === pn);
