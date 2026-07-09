@@ -438,6 +438,20 @@
   #sv-point.active { background: linear-gradient(135deg, rgba(125,211,252,.3), rgba(192,132,252,.3)); border-color: var(--accent); color: var(--accent); }
   #sv-bottom .nav-btn { white-space: nowrap; }
   #sv-time { background: linear-gradient(135deg, rgba(255,215,94,.18), rgba(192,132,252,.14)); }
+  #sv-tour {
+    position: absolute; bottom: 84px; left: 50%; transform: translateX(-50%); z-index: 3;
+    width: min(560px, 92vw); display: none; flex-direction: column; gap: 12px; align-items: center;
+  }
+  #sv-tour.on { display: flex; }
+  #sv-tour-text {
+    background: rgba(8,11,30,.86); border: 1px solid var(--line); border-radius: 14px;
+    padding: 15px 18px; font-size: 15px; line-height: 1.55; color: #eaf1ff; text-align: center;
+    backdrop-filter: blur(8px);
+  }
+  #sv-tour-ctrl { display: flex; gap: 8px; align-items: center; }
+  #sv-tour-ctrl .nav-btn { padding: 8px 13px; }
+  #sv-tour-prog { font-size: 12px; color: var(--dim); min-width: 46px; text-align: center; letter-spacing: .05em; }
+  #sv-tour-start { background: linear-gradient(135deg, rgba(192,132,252,.24), rgba(125,211,252,.24)); border-color: var(--accent); color: #eaf1ff; }
 
   /* ---------- Size Comparison mode ---------- */
   #compareSpace {
@@ -885,7 +899,18 @@
     <button class="nav-btn" id="sv-exit">✕ Exit</button>
   </div>
   <div id="sv-hint">Drag to look around · tap named objects to learn more</div>
+  <div id="sv-tour">
+    <div id="sv-tour-text"></div>
+    <div id="sv-tour-ctrl">
+      <button class="nav-btn" id="sv-tour-prev" aria-label="Previous">←</button>
+      <button class="nav-btn" id="sv-tour-play" aria-label="Pause / resume">⏸</button>
+      <span id="sv-tour-prog"></span>
+      <button class="nav-btn" id="sv-tour-next" aria-label="Next">→</button>
+      <button class="nav-btn" id="sv-tour-end">✕ End</button>
+    </div>
+  </div>
   <div id="sv-bottom">
+    <button class="nav-btn" id="sv-tour-start">🎧 Guided tour</button>
     <button class="nav-btn" id="sv-point">📱 Point mode</button>
     <button class="nav-btn" id="sv-time" style="display:none"></button>
   </div>
@@ -3483,12 +3508,94 @@ function svEnterFromTonight() {
 }
 function svExit() {
   svActive = false;
+  endTour(false);
   document.getElementById("skyview").classList.remove("on");
   window.removeEventListener("deviceorientation", svOrient, true);
   if (svRAF) cancelAnimationFrame(svRAF);
   svMode = "drag"; updatePointBtn();
+  document.getElementById("sv-tour-start").style.display = "";
   openTonight(true); // return to Tonight's Sky, keeping any time-travel setting
 }
+
+/* ---- Guided sky tour: auto-pan the immersive view through what's up tonight ---- */
+const TOUR_SCRIPT = [
+  ["Moon", "body", jd => `We'll start close to home — the Moon, just 384,000 km away, tonight a ${moonPhaseName(jd).toLowerCase()}.`],
+  ["Venus", "body", "That dazzling beacon is Venus — the brightest point in the whole sky, a furnace-world wrapped in acid clouds."],
+  ["Jupiter", "body", "The steady golden 'star' is Jupiter, king of the planets — big enough to swallow 1,300 Earths."],
+  ["Saturn", "body", "That calm yellow point is Saturn — even a small telescope reveals its glorious rings."],
+  ["Mars", "body", "The rusty-red point is Mars, the desert world our rovers are exploring right now."],
+  ["Mercury", "body", "Low in the twilight glimmers elusive Mercury — the innermost planet, and the hardest of all to catch."],
+  ["Orion", "const", "Orion the Hunter — find the three stars of his Belt, and just below them glows the Orion Nebula, a cradle of newborn stars."],
+  ["Sirius", "star", "Blazing near Orion is Sirius, the Dog Star — the brightest star in all the sky, a neighbour just 8.6 light-years away."],
+  ["Scorpius", "const", "Scorpius really looks like its name — a long curving sting low in the south, its heart the red supergiant Antares."],
+  ["Southern Cross", "const", "The Southern Cross — small but iconic; its long axis points the way to the invisible south pole of the sky."],
+  ["Big Dipper", "const", "The Big Dipper — follow the two stars at the lip of its bowl straight to Polaris, the North Star."],
+  ["Leo", "const", "Leo the Lion — the backwards question-mark of his mane curls down to bright Regulus, his heart."],
+  ["Vega", "star", "Brilliant blue-white Vega, high overhead in summer — in 12,000 years it'll take a turn as our pole star."],
+  ["Arcturus", "star", "The warm orange star is Arcturus — an ageing giant, and the brightest star in the northern sky."],
+  ["Cygnus", "const", "Cygnus the Swan glides down the Milky Way with wings outstretched — also known as the Northern Cross."],
+  ["Milky Way", "mw", "And that faint band arching overhead is the Milky Way itself — the massed glow of billions of stars in our galaxy's disc, seen edge-on from within."],
+  ["Pleiades", "deepsky", "We'll finish at the Pleiades — the Seven Sisters, a sparkling knot of hot young stars, gorgeous through binoculars."],
+];
+let tourStops = [], tourIx = 0, tourTimer = null, tourActive = false, tourPaused = false;
+function tourResolve(name, kind, jd, lat, lon) {
+  let h;
+  if (kind === "body") h = bodyAltAz(name, jd, lat, lon);
+  else if (kind === "star") { const p = STAR_POS[name]; if (!p) return null; h = eqToHoriz(p[0], p[1], jd, lat, lon); }
+  else if (kind === "const") { const c = CONSTELLATIONS.find(k => k.name === name); return (c && constLabelPos(c, jd, lat, lon)) || null; }
+  else if (kind === "mw") h = eqToHoriz(MW_CORE.ra, MW_CORE.dec, jd, lat, lon);
+  else if (kind === "deepsky") { const d = DEEPSKY.find(o => o[0] === name); if (!d) return null; h = eqToHoriz(d[1], d[2], jd, lat, lon); }
+  return h ? { az: h.az, alt: h.alt } : null;
+}
+function buildTour() {
+  const jd = skyJd(), lat = skyLoc.lat, lon = skyLoc.lon, stops = [];
+  for (const [name, kind, text] of TOUR_SCRIPT) {
+    const p = tourResolve(name, kind, jd, lat, lon);
+    if (!p || p.alt < 12) continue; // must be comfortably above the horizon
+    stops.push({ az: p.az, alt: p.alt, text: typeof text === "function" ? text(jd) : text });
+    if (stops.length >= 10) break;
+  }
+  return stops;
+}
+function tourGoto(i) {
+  if (!tourStops.length) return;
+  tourIx = Math.max(0, Math.min(tourStops.length - 1, i));
+  const s = tourStops[tourIx];
+  svAzT = s.az; svAltT = Math.max(10, s.alt); // pan the camera to centre it under the crosshair
+  document.getElementById("sv-tour-text").textContent = s.text;
+  document.getElementById("sv-tour-prog").textContent = (tourIx + 1) + " / " + tourStops.length;
+  document.getElementById("sv-tour-prev").disabled = tourIx === 0;
+  document.getElementById("sv-tour-next").disabled = tourIx === tourStops.length - 1;
+  clearTimeout(tourTimer);
+  if (!tourPaused) tourTimer = setTimeout(() => { if (tourIx < tourStops.length - 1) tourGoto(tourIx + 1); else endTour(true); }, 8500);
+}
+function startTour() {
+  if (svMode === "point") { svMode = "drag"; updatePointBtn(); } // auto-pan needs drag mode
+  tourStops = buildTour();
+  if (!tourStops.length) { showToast("🌙 The sky's a bit quiet right now — try again once it's darker"); return; }
+  tourActive = true; tourPaused = false;
+  document.getElementById("sv-tour-play").textContent = "⏸";
+  document.getElementById("sv-tour").classList.add("on");
+  document.getElementById("sv-hint").classList.add("gone");
+  document.getElementById("sv-tour-start").style.display = "none";
+  tourGoto(0);
+}
+function endTour(done) {
+  tourActive = false; clearTimeout(tourTimer); tourTimer = null;
+  document.getElementById("sv-tour").classList.remove("on");
+  if (svActive) document.getElementById("sv-tour-start").style.display = "";
+  if (done) showToast("✨ That's the tour — now explore on your own");
+}
+function tourTogglePause() {
+  tourPaused = !tourPaused;
+  document.getElementById("sv-tour-play").textContent = tourPaused ? "▶" : "⏸";
+  if (tourPaused) clearTimeout(tourTimer); else tourGoto(tourIx); // resume re-arms the timer
+}
+document.getElementById("sv-tour-start").addEventListener("click", startTour);
+document.getElementById("sv-tour-prev").addEventListener("click", () => tourGoto(tourIx - 1));
+document.getElementById("sv-tour-next").addEventListener("click", () => tourGoto(tourIx + 1));
+document.getElementById("sv-tour-play").addEventListener("click", tourTogglePause);
+document.getElementById("sv-tour-end").addEventListener("click", () => endTour(false));
 function updatePointBtn() {
   const b = document.getElementById("sv-point");
   b.classList.toggle("active", svMode === "point");
@@ -3597,7 +3704,7 @@ function svTap(sx, sy) {
   });
   addEventListener("resize", () => { if (svActive) svResize(); });
   addEventListener("keydown", e => {
-    if (svActive && e.key === "Escape" && !panel.classList.contains("open")) svExit();
+    if (svActive && e.key === "Escape" && !panel.classList.contains("open")) { if (tourActive) endTour(false); else svExit(); }
   });
 }
 document.getElementById("sky-fullbtn").addEventListener("click", svEnterFromTonight);
