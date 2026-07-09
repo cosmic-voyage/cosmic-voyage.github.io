@@ -4855,6 +4855,7 @@ function starSign(m, d) { // Western astrological sun sign by date
 const SUN_CONST = [[28.7, "Aries"], [53.5, "Taurus"], [90.4, "Gemini"], [118.3, "Cancer"], [138.2, "Leo"], [174.0, "Virgo"], [217.8, "Libra"], [241.1, "Scorpius"], [247.7, "Ophiuchus"], [266.6, "Sagittarius"], [299.7, "Capricornus"], [327.8, "Aquarius"], [351.7, "Pisces"]];
 function sunConstellation(lam) { let n = "Pisces"; for (const [s, name] of SUN_CONST) if (lam >= s) n = name; return n; }
 const CONST_OF_SIGN = { Scorpio: "Scorpius", Capricorn: "Capricornus" }; // sign name → constellation name
+const ZODIAC_SYMBOL = { Aries: "♈", Taurus: "♉", Gemini: "♊", Cancer: "♋", Leo: "♌", Virgo: "♍", Libra: "♎", Scorpio: "♏", Sagittarius: "♐", Capricorn: "♑", Aquarius: "♒", Pisces: "♓" };
 // centroid direction of a constellation, WITHOUT the "must be up" gate (so we can point at it below the horizon)
 function constCentroid(c, jd, lat, lon) {
   let vx = 0, vy = 0, vz = 0, n = 0;
@@ -4895,8 +4896,8 @@ function revealBirth() {
   const zUp = cen && cen.alt > 3, zdir = cen ? CARD8[Math.round((((cen.az % 360) + 360) % 360) / 45) % 8] : "";
   const bestMonth = new Date(2000, (m - 1 + 6) % 12, 1).toLocaleDateString("en-US", { month: "long" });
   const zLine = !cen ? "" : zUp
-    ? `<div class="bf-line">♒ Your sign, <b>${sign}</b>, is circled in gold on the map above.</div>`
-    : `<div class="bf-line">♒ A cosmic twist: you can't see your own sign on your birthday. That night the Sun sat right in front of it — hiding <b>${sign}</b> in the daytime sky. It's marked low toward the <b>${zdir}</b>, and rides highest at midnight around <b>${bestMonth}</b>, six months away.</div>`;
+    ? `<div class="bf-line">${ZODIAC_SYMBOL[sign] || "✨"} Your sign, <b>${sign}</b>, is circled in gold on the map above.</div>`
+    : `<div class="bf-line">${ZODIAC_SYMBOL[sign] || "✨"} A cosmic twist: you can't see your own sign on your birthday. That night the Sun sat right in front of it — hiding <b>${sign}</b> in the daytime sky. It's marked low toward the <b>${zdir}</b>, and rides highest at midnight around <b>${bestMonth}</b>, six months away.</div>`;
   for (const p of ["Mercury", "Venus", "Mars", "Jupiter", "Saturn"]) if (bodyAltAz(p, birthJd, lat, lon).alt > 5) up.push(p);
   if (bodyAltAz("Moon", birthJd, lat, lon).alt > 5) up.push("the Moon");
   const planetStr = up.length ? up.join(", ") : "no bright planets were above the horizon";
