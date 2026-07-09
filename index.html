@@ -4759,6 +4759,32 @@ function starSign(m, d) { // Western astrological sun sign by date
 // which constellation the Sun ACTUALLY sat in, by ecliptic longitude (approx IAU boundaries; includes Ophiuchus)
 const SUN_CONST = [[28.7, "Aries"], [53.5, "Taurus"], [90.4, "Gemini"], [118.3, "Cancer"], [138.2, "Leo"], [174.0, "Virgo"], [217.8, "Libra"], [241.1, "Scorpius"], [247.7, "Ophiuchus"], [266.6, "Sagittarius"], [299.7, "Capricornus"], [327.8, "Aquarius"], [351.7, "Pisces"]];
 function sunConstellation(lam) { let n = "Pisces"; for (const [s, name] of SUN_CONST) if (lam >= s) n = name; return n; }
+const CONST_OF_SIGN = { Scorpio: "Scorpius", Capricorn: "Capricornus" }; // sign name → constellation name
+// centroid direction of a constellation, WITHOUT the "must be up" gate (so we can point at it below the horizon)
+function constCentroid(c, jd, lat, lon) {
+  let vx = 0, vy = 0, vz = 0, n = 0;
+  for (const s of c.stars) { const p = STAR_POS[s]; if (!p) continue; const h = eqToHoriz(p[0], p[1], jd, lat, lon); const v = dirVec(h.az, h.alt); vx += v[0]; vy += v[1]; vz += v[2]; n++; }
+  if (!n) return null;
+  const m = Math.hypot(vx, vy, vz) || 1;
+  return { az: norm360(Math.atan2(vx / m, vy / m) * R2D), alt: Math.asin(vz / m) * R2D };
+}
+// mark the birthday's zodiac sign on the birth dome (gold ring if up; a marker at the rim if just below)
+function drawBirthZodiac(cst, signName, jd) {
+  const cen = constCentroid(cst, jd, skyLoc.lat, skyLoc.lon); if (!cen) return null;
+  const c = document.getElementById("birth-canvas"), x = c.getContext("2d");
+  x.setTransform(1, 0, 0, 1, 0, 0);
+  const cx = 180, cy = 180, Rmax = 164, above = cen.alt > 3;
+  const [px, py] = projSky(cx, cy, Rmax, above ? cen.alt : 3, cen.az); // pin near the rim if below the horizon
+  x.save();
+  x.strokeStyle = "#ffd75e"; x.lineWidth = 2;
+  x.beginPath(); x.arc(px, py, above ? 15 : 9, 0, 7); x.stroke();
+  x.globalAlpha = .3; x.lineWidth = 5; x.beginPath(); x.arc(px, py, above ? 15 : 9, 0, 7); x.stroke();
+  x.globalAlpha = 1; x.fillStyle = "#ffe9a8"; x.font = "bold 10px sans-serif"; x.textAlign = "center";
+  const ly = py > cy ? py + (above ? 26 : 17) : py - (above ? 24 : 14);
+  x.fillText((above ? "★ " : "↓ ") + signName, px, ly);
+  x.restore();
+  return cen;
+}
 function revealBirth() {
   const v = document.getElementById("birth-date").value;
   if (!v) { showToast("Pick your birthday first 🎂"); return; }
@@ -4768,6 +4794,14 @@ function revealBirth() {
   const phase = moonPhaseName(birthJd), illum = Math.round(moonIllum(birthJd) * 100);
   const sign = starSign(m, d), constell = sunConstellation(sunEcliptic(birthJd).lon);
   const lat = skyLoc.lat, lon = skyLoc.lon, up = [];
+  // highlight the birthday's zodiac sign on the dome + explain where it is
+  const zcst = CONSTELLATIONS.find(k => k.name === (CONST_OF_SIGN[sign] || sign));
+  const cen = zcst ? drawBirthZodiac(zcst, sign, birthJd) : null;
+  const zUp = cen && cen.alt > 3, zdir = cen ? CARD8[Math.round((((cen.az % 360) + 360) % 360) / 45) % 8] : "";
+  const bestMonth = new Date(2000, (m - 1 + 6) % 12, 1).toLocaleDateString("en-US", { month: "long" });
+  const zLine = !cen ? "" : zUp
+    ? `<div class="bf-line">♒ Your sign, <b>${sign}</b>, is circled in gold on the map above.</div>`
+    : `<div class="bf-line">♒ A cosmic twist: you can't see your own sign on your birthday. That night the Sun sat right in front of it — hiding <b>${sign}</b> in the daytime sky. It's marked low toward the <b>${zdir}</b>, and rides highest at midnight around <b>${bestMonth}</b>, six months away.</div>`;
   for (const p of ["Mercury", "Venus", "Mars", "Jupiter", "Saturn"]) if (bodyAltAz(p, birthJd, lat, lon).alt > 5) up.push(p);
   if (bodyAltAz("Moon", birthJd, lat, lon).alt > 5) up.push("the Moon");
   const planetStr = up.length ? up.join(", ") : "no bright planets were above the horizon";
@@ -4777,6 +4811,7 @@ function revealBirth() {
     `<div class="bf-moonrow"><canvas id="birth-moon" width="76" height="76"></canvas>`
     + `<div><div class="bf-big">Born under a <b>${phase}</b></div><div class="bf-sub">${illum}% illuminated</div></div></div>`
     + `<div class="bf-line">⭐ Your star sign is <b>${sign}</b>${sign !== constell ? ` — though that night the Sun actually sat in front of <b>${constell}</b> (the signs have slipped ~a month over 2,000 years)` : ""}</div>`
+    + zLine
     + `<div class="bf-line">🪐 Up in your evening sky: <b>${planetStr}</b></div>`
     + `<div class="bf-line">🌍 Since then you've ridden Earth <b>${Math.floor(orbits)} times around the Sun</b> — about <b>${dist} billion km</b> through space</div>`
     + `<div class="bf-note">Shown from your current location (${skyLocLabel()}), at 9 pm on the night of your birthday.</div>`;
