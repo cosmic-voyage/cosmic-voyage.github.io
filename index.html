@@ -465,6 +465,72 @@
   }
   .cmp-chip:hover { color: var(--accent); border-color: var(--accent); }
 
+  /* ---------- Living Orrery mode ---------- */
+  #orrSpace {
+    position: fixed; inset: 0; z-index: 4; display: none;
+    flex-direction: column; align-items: center; justify-content: flex-start;
+    gap: 10px; padding: 84px 16px 90px; text-align: center; overflow-y: auto;
+  }
+  #orrSpace.on { display: flex; }
+  #orr-head .kicker { font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+  #orr-head h1 { font-size: clamp(20px, 3vw, 32px); font-weight: 700; }
+  #orr-tabs { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .orr-tab {
+    background: rgba(10,14,40,.7); border: 1px solid var(--line); color: var(--dim);
+    border-radius: 999px; padding: 8px 16px; font-size: 12px; font-weight: 600;
+    letter-spacing: .08em; cursor: pointer; transition: all .25s ease; font-family: inherit;
+  }
+  .orr-tab.on { color: var(--accent); border-color: var(--accent); box-shadow: 0 0 16px rgba(125,211,252,.2); }
+  #orr-canvas { width: min(540px, 92vw, 52vh); height: auto; touch-action: pan-y; cursor: grab; border-radius: 14px; }
+  #orr-date { font-size: clamp(19px, 3vw, 26px); font-weight: 800; color: #ffe9a8; letter-spacing: .02em; }
+  #orr-note { font-size: 13px; color: #d5e2f7; min-height: 20px; max-width: 480px; line-height: 1.5; }
+  #orr-controls { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  .orr-btn {
+    background: rgba(10,14,40,.8); border: 1px solid var(--line); color: var(--ink);
+    border-radius: 10px; padding: 9px 15px; font-size: 15px; cursor: pointer; font-family: inherit; font-weight: 700;
+  }
+  .orr-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .orr-btn.orr-today { font-size: 12px; }
+  #orr-speed { font-size: 12px; color: var(--dim); letter-spacing: .05em; min-width: 118px; }
+  .orr-hint { font-size: 11.5px; color: var(--dim); letter-spacing: .04em; }
+
+  /* ---------- The Far Future mode ---------- */
+  #farSpace {
+    position: fixed; inset: 0; z-index: 4; display: none;
+    flex-direction: column; align-items: center; justify-content: center;
+    gap: 22px; padding: 90px 16px 100px; text-align: center;
+  }
+  #farSpace.on { display: flex; }
+  #far-head .kicker { font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: var(--accent2); margin-bottom: 6px; }
+  #far-head h1 { font-size: clamp(20px, 3vw, 32px); font-weight: 700; }
+  #far-head .sub { color: var(--dim); font-size: 13px; margin-top: 6px; max-width: 560px; line-height: 1.5; }
+  #far-strip { position: relative; width: min(760px, 94vw); height: 30px; }
+  #far-line {
+    position: absolute; left: 0; right: 0; top: 14px; height: 3px; border-radius: 3px;
+    background: linear-gradient(90deg, #ffd75e 0%, #ff9a52 16%, #7dd3fc 42%, #6a6cff 66%, #2a2352 86%, #060610 100%);
+  }
+  .far-dot {
+    position: absolute; top: 15px; transform: translate(-50%, -50%);
+    width: 13px; height: 13px; border-radius: 50%; border: none; cursor: pointer; padding: 0;
+    background: rgba(220,225,255,.5); transition: all .25s ease;
+  }
+  .far-dot:hover { transform: translate(-50%, -50%) scale(1.3); background: #fff; }
+  .far-dot.on { background: #fff; box-shadow: 0 0 12px rgba(224,231,255,.9); transform: translate(-50%, -50%) scale(1.5); }
+  #far-card {
+    width: min(560px, 94vw); background: rgba(10,14,40,.85); border: 1px solid var(--line);
+    border-radius: 16px; padding: 22px 26px; backdrop-filter: blur(10px);
+    min-height: 210px; display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+  #far-scale { font-size: clamp(15px, 2.4vw, 19px); letter-spacing: .12em; text-transform: uppercase; color: #ffd75e; font-weight: 800; }
+  #far-title { font-size: clamp(19px, 2.6vw, 26px); font-weight: 700; line-height: 1.2; }
+  #far-blurb { font-size: 14px; color: #d5e2f7; line-height: 1.6; max-width: 480px; }
+  #far-explore {
+    padding: 9px 18px; font-size: 12px; margin-top: 2px;
+  }
+  #far-nav { display: flex; gap: 18px; align-items: center; }
+  #far-count { font-size: 12px; color: var(--dim); letter-spacing: .06em; min-width: 120px; }
+  #far-prev:disabled, #far-next:disabled { opacity: .3; cursor: default; }
+
   /* ---------- Cosmic Calendar mode ---------- */
   #calSpace {
     position: fixed; inset: 0; z-index: 4; display: none;
@@ -636,6 +702,8 @@
   <button class="mode-item" id="mi-scale" role="menuitem"><span class="mi-ic">📏</span><span><b>Scale of the Universe</b><em>Pinch to zoom from the ISS to the cosmos</em></span></button>
   <button class="mode-item" id="mi-cal" role="menuitem"><span class="mi-ic">📅</span><span><b>Cosmic Calendar</b><em>13.8 billion years as a single year</em></span></button>
   <button class="mode-item" id="mi-compare" role="menuitem"><span class="mi-ic">🆚</span><span><b>Size Comparison</b><em>How many of one world fit inside another</em></span></button>
+  <button class="mode-item" id="mi-orrery" role="menuitem"><span class="mi-ic">🪐</span><span><b>Living Orrery</b><em>The real Solar System in motion — spin time</em></span></button>
+  <button class="mode-item" id="mi-far" role="menuitem"><span class="mi-ic">🔮</span><span><b>The Far Future</b><em>What happens next — all the way to the end of time</em></span></button>
   <button class="mode-item" id="mi-tonight" role="menuitem"><span class="mi-ic">🌙</span><span><b>Tonight's Sky</b><em>See what's above you right now</em></span></button>
 </div>
 
@@ -749,6 +817,45 @@
     <div id="cmp-quip"></div>
   </div>
   <div id="cmp-presets"></div>
+</div>
+
+<div id="orrSpace">
+  <div id="orr-head">
+    <div class="kicker">The Living Orrery</div>
+    <h1>The Solar System in motion</h1>
+  </div>
+  <div id="orr-tabs"></div>
+  <canvas id="orr-canvas"></canvas>
+  <div id="orr-date"></div>
+  <div id="orr-note"></div>
+  <div id="orr-controls">
+    <button class="orr-btn" id="orr-slower" title="Slower">−</button>
+    <button class="orr-btn" id="orr-play" title="Play / pause">▶</button>
+    <button class="orr-btn" id="orr-faster" title="Faster">+</button>
+    <span id="orr-speed"></span>
+    <button class="orr-btn orr-today" id="orr-today">↺ Today</button>
+  </div>
+  <div class="orr-hint">Drag sideways to travel through time · tap a planet to learn more</div>
+</div>
+
+<div id="farSpace">
+  <div id="far-head">
+    <div class="kicker">The Far Future</div>
+    <h1>What happens next?</h1>
+    <div class="sub">The Cosmic Calendar runs from the Big Bang to now. This is the story that comes after — all the way to the end of time.</div>
+  </div>
+  <div id="far-strip"><div id="far-line"></div></div>
+  <div id="far-card">
+    <div id="far-scale"></div>
+    <div id="far-title"></div>
+    <div id="far-blurb"></div>
+    <button class="nav-btn" id="far-explore"></button>
+  </div>
+  <div id="far-nav">
+    <button class="nav-btn" id="far-prev">←</button>
+    <span id="far-count"></span>
+    <button class="nav-btn" id="far-next">→</button>
+  </div>
 </div>
 
 <div id="calSpace">
@@ -1646,12 +1753,19 @@ addEventListener("keydown", (e) => {
     else if (document.getElementById("tonight").classList.contains("open")) { closeTonight(); e.stopImmediatePropagation(); }
     else if (calMode) { setCalMode(false); e.stopImmediatePropagation(); }
     else if (compareMode) { setCompareMode(false); e.stopImmediatePropagation(); }
+    else if (orreryMode) { setOrreryMode(false); e.stopImmediatePropagation(); }
+    else if (farMode) { setFarMode(false); e.stopImmediatePropagation(); }
     else if (scaleMode) { setScaleMode(false); e.stopImmediatePropagation(); }
     return;
   }
   if (calMode) {
     if (e.key === "ArrowRight" || e.key === "ArrowDown") calGo(1);
     if (e.key === "ArrowLeft" || e.key === "ArrowUp") calGo(-1);
+    return;
+  }
+  if (farMode) {
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") farGo(1);
+    if (e.key === "ArrowLeft" || e.key === "ArrowUp") farGo(-1);
     return;
   }
   if (scaleMode) {
@@ -1838,9 +1952,11 @@ document.getElementById("mi-fly").addEventListener("click", closeModeMenu); // a
 document.getElementById("mi-scale").addEventListener("click", () => { closeModeMenu(); setScaleMode(true); });
 document.getElementById("mi-cal").addEventListener("click", () => { closeModeMenu(); setCalMode(true); });
 document.getElementById("mi-compare").addEventListener("click", () => { closeModeMenu(); setCompareMode(true); });
+document.getElementById("mi-orrery").addEventListener("click", () => { closeModeMenu(); setOrreryMode(true); });
+document.getElementById("mi-far").addEventListener("click", () => { closeModeMenu(); setFarMode(true); });
 document.getElementById("mi-tonight").addEventListener("click", () => { closeModeMenu(); openTonight(); });
 document.getElementById("btn-exit-mode").addEventListener("click", () => {
-  if (scaleMode) setScaleMode(false); else if (calMode) setCalMode(false); else if (compareMode) setCompareMode(false);
+  if (scaleMode) setScaleMode(false); else if (calMode) setCalMode(false); else if (compareMode) setCompareMode(false); else if (orreryMode) setOrreryMode(false); else if (farMode) setFarMode(false);
 });
 // Shared chrome toggle: the modes hide the journey HUD and swap Explore ⇄ Journey
 function toggleModeChrome(on) {
@@ -2033,6 +2149,8 @@ addEventListener("touchend", (e) => { if (e.touches.length < 2) pinchDist = null
 function setScaleMode(on) {
   if (on && calMode) setCalMode(false);
   if (on && compareMode) setCompareMode(false);
+  if (on && orreryMode) setOrreryMode(false);
+  if (on && farMode) setFarMode(false);
   scaleMode = on;
   document.getElementById("scaleSpace").classList.toggle("on", on);
   document.getElementById("scale-hud").classList.toggle("on", on);
@@ -2063,6 +2181,14 @@ const EPH = {
             [-0.00011607, -0.00013253, -0.00183714, 3034.74612775, 0.21252668, 0.20469106]],
   Saturn:  [[9.53667594, 0.05386179, 2.48599187, 49.95424423, 92.59887831, 113.66242448],
             [-0.00125060, -0.00050991, 0.00193609, 1222.49362201, -0.41897216, -0.28867794]],
+  // Uranus/Neptune/Pluto added for the orrery (validated in scratchpad: Neptune's 1846
+  // discovery position, Pluto's 1930 discovery spot, Pluto-inside-Neptune 1990)
+  Uranus:  [[19.18916464, 0.04725744, 0.77263783, 313.23810451, 170.95427630, 74.01692503],
+            [-0.00196176, -0.00004397, -0.00242939, 428.48202785, 0.40805281, 0.04240589]],
+  Neptune: [[30.06992276, 0.00859048, 1.77004347, -55.12002969, 44.96476227, 131.78422574],
+            [0.00026291, 0.00005105, 0.00035372, 218.45945325, -0.32241464, -0.00508664]],
+  Pluto:   [[39.48211675, 0.24882730, 17.14001206, 238.92903833, 224.06891629, 110.30393684],
+            [-0.00031596, 0.00005170, 0.00004818, 145.20780515, -0.04062942, -0.01183482]],
 };
 const D2R = Math.PI / 180;
 function ephHelio(planet, jd) {
@@ -3787,6 +3913,8 @@ document.getElementById("cal-next").addEventListener("click", () => calGo(1));
 function setCalMode(on) {
   if (on && scaleMode) setScaleMode(false);
   if (on && compareMode) setCompareMode(false);
+  if (on && orreryMode) setOrreryMode(false);
+  if (on && farMode) setFarMode(false);
   calMode = on;
   document.getElementById("calSpace").classList.toggle("on", on);
   toggleModeChrome(on);
@@ -3921,12 +4049,268 @@ function initCompare() {
   }));
 }
 function setCompareMode(on) {
-  if (on) { if (scaleMode) setScaleMode(false); if (calMode) setCalMode(false); }
+  if (on) { if (scaleMode) setScaleMode(false); if (calMode) setCalMode(false); if (orreryMode) setOrreryMode(false); if (farMode) setFarMode(false); }
   compareMode = on;
   document.getElementById("compareSpace").classList.toggle("on", on);
   toggleModeChrome(on);
   closePanel(); if (typeof closeTonight === "function") closeTonight();
   if (on) { initCompare(); renderCompare(); }
+  targetSpeed = 18;
+  setTimeout(() => { targetSpeed = 1.4; }, 600);
+}
+
+/* ============================================================
+   LIVING ORRERY — the real Solar System, top-down, at true positions
+   from the same JPL ephemeris as the sky views. Spin time and watch
+   the planets wheel; conjunctions line up along Earth's sight-line.
+   (Uranus/Neptune/Pluto elements validated in scratchpad: Neptune's
+   1846 discovery position, Pluto's 1930 spot, Pluto-inside-Neptune 1990.)
+   ============================================================ */
+var orreryMode = false; // var: tick() may run before this block executes
+const ORR_VIEWS = [
+  { name: "☿ Rocky worlds", maxAU: 1.78, planets: ["Mercury", "Venus", "Earth", "Mars"], dpp: 0.7 },
+  { name: "♃ To Saturn", maxAU: 10.4, planets: ["Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn"], dpp: 5 },
+  { name: "♇ The whole system", maxAU: 50.5, planets: ["Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto"], dpp: 18 },
+];
+const ORR_COL = { Mercury: "#b9b0a0", Venus: "#ffd9a0", Earth: "#7fd4ff", Mars: "#ff7a4a", Jupiter: "#e8c99a", Saturn: "#e6c67a", Uranus: "#9fe3e0", Neptune: "#6a8cff", Pluto: "#cbb79f" };
+const ORR_DOT = { Mercury: 3, Venus: 4.5, Earth: 4.5, Mars: 3.6, Jupiter: 7.5, Saturn: 6.8, Uranus: 5.4, Neptune: 5.2, Pluto: 2.6 };
+const ORR_SPEEDS = [[1, "1 day / sec"], [7, "1 week / sec"], [30, "1 month / sec"], [365.25, "1 year / sec"], [3652.5, "10 years / sec"]];
+const ORR_JD_MIN = Date.UTC(1800, 0, 2) / 864e5 + 2440587.5, ORR_JD_MAX = Date.UTC(2049, 11, 30) / 864e5 + 2440587.5;
+let orrJd = 0, orrView = 1, orrPlaying = false, orrSpeedIx = 2, orrRAF = null, orrLastT = 0;
+const orrPaths = {}; // cached orbit Path2Ds, keyed planet|view|size
+
+function orrPeriodDays(p) { return 360 / EPH[p][1][3] * 36525; } // from the element rates
+function orrGeoSep(a, b, jd) { // geocentric angular separation via ecliptic lon/lat
+  const A = a === "Sun" ? sunEcliptic(jd) : planetEcliptic(a, jd);
+  const B = b === "Sun" ? sunEcliptic(jd) : planetEcliptic(b, jd);
+  const la = A.lat * D2R, lb = B.lat * D2R, dl = (A.lon - B.lon) * D2R;
+  return Math.acos(Math.max(-1, Math.min(1, Math.sin(la) * Math.sin(lb) + Math.cos(la) * Math.cos(lb) * Math.cos(dl)))) * R2D;
+}
+// what's lining up right now (feeds the note + the sight-lines)
+function orrAlignments(jd) {
+  const naked = ["Mercury", "Venus", "Mars", "Jupiter", "Saturn"];
+  for (let i = 0; i < naked.length; i++) for (let j = i + 1; j < naked.length; j++) {
+    if (orrGeoSep(naked[i], naked[j], jd) < 2.2) return { kind: "pair", a: naked[i], b: naked[j] };
+  }
+  for (const p of ["Mars", "Jupiter", "Saturn"]) {
+    if (orrGeoSep(p, "Sun", jd) > 176.2) return { kind: "opposition", a: p }; // Mars/Saturn tilt keeps them a few ° off perfect 180°
+  }
+  for (const p of ["Venus", "Mercury"]) {
+    if (orrGeoSep(p, "Sun", jd) < 1.6) return { kind: "conjunction", a: p };
+  }
+  return null;
+}
+function orrDateStr(jd) {
+  return new Date((jd - 2440587.5) * 864e5).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" });
+}
+function drawOrrery() {
+  const c = document.getElementById("orr-canvas"); if (!c || !orreryMode) return;
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const cw = c.clientWidth || 500, ch = cw;
+  if (c.width !== cw * dpr) { c.width = cw * dpr; c.height = ch * dpr; }
+  const x = c.getContext("2d");
+  x.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const view = ORR_VIEWS[orrView], cx = cw / 2, cy = ch / 2;
+  const scale = (cw / 2 - 16) / view.maxAU;
+  const P = pl => { const p = ephHelio(pl, orrJd); return [cx + p.x * scale, cy - p.y * scale]; }; // y up = north; planets run counter-clockwise
+  // sky
+  const bg = x.createRadialGradient(cx, cy, 0, cx, cy, cw * 0.72);
+  bg.addColorStop(0, "#0d1330"); bg.addColorStop(1, "#05060f");
+  x.fillStyle = bg; x.fillRect(0, 0, cw, ch);
+  let sd = 123456789; const rnd = () => (sd = (sd * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  x.fillStyle = "#cdd8ff";
+  for (let i = 0; i < 90; i++) { x.globalAlpha = rnd() * .4 + .08; x.beginPath(); x.arc(rnd() * cw, rnd() * ch, rnd() * 1.1 + .3, 0, 7); x.fill(); }
+  x.globalAlpha = 1;
+  // orbits (each sampled from the real ephemeris over one period, cached)
+  for (const pl of view.planets) {
+    const key = pl + "|" + orrView + "|" + cw;
+    if (!orrPaths[key]) {
+      const path = new Path2D(), n = 128, T = orrPeriodDays(pl);
+      for (let i = 0; i <= n; i++) {
+        const p = ephHelio(pl, jdNow() + (i / n) * T);
+        const px = cx + p.x * scale, py = cy - p.y * scale;
+        i ? path.lineTo(px, py) : path.moveTo(px, py);
+      }
+      orrPaths[key] = path;
+    }
+    x.strokeStyle = pl === "Pluto" ? "rgba(203,183,159,.22)" : "rgba(125,211,252,.16)";
+    x.lineWidth = 1;
+    if (pl === "Pluto") x.setLineDash([4, 5]); // tilted 17° — the flat projection is approximate
+    x.stroke(orrPaths[key]);
+    x.setLineDash([]);
+  }
+  // alignment sight-line (drawn under the planets)
+  const al = orrAlignments(orrJd);
+  if (al) {
+    const [ex, ey] = P("Earth");
+    const towards = al.kind === "pair" ? P(al.a) : al.kind === "opposition" ? P(al.a) : P(al.a);
+    let dx = towards[0] - ex, dy = towards[1] - ey;
+    if (al.kind === "conjunction") { dx = cx - ex; dy = cy - ey; } // through the Sun
+    const m = Math.hypot(dx, dy) || 1;
+    x.strokeStyle = "rgba(255,233,168,.4)"; x.lineWidth = 1; x.setLineDash([3, 6]);
+    x.beginPath(); x.moveTo(ex, ey); x.lineTo(ex + dx / m * cw, ey + dy / m * cw); x.stroke();
+    x.setLineDash([]);
+  }
+  // the Sun
+  const sg = x.createRadialGradient(cx, cy, 0, cx, cy, 22);
+  sg.addColorStop(0, "#fff6c0"); sg.addColorStop(.35, "rgba(255,210,90,.65)"); sg.addColorStop(1, "transparent");
+  x.fillStyle = sg; x.beginPath(); x.arc(cx, cy, 22, 0, 7); x.fill();
+  x.fillStyle = "#ffe07a"; x.beginPath(); x.arc(cx, cy, orrView === 0 ? 8 : 5.5, 0, 7); x.fill();
+  // planets — dots (glow first), then collision-aware labels (outermost gets priority)
+  x.textAlign = "center"; x.font = "600 10.5px sans-serif";
+  const drawn = view.planets.map(pl => { const [px, py] = P(pl); return { pl, px, py, r: ORR_DOT[pl] * (orrView === 0 ? 1.35 : 1) }; });
+  for (const d of drawn) {
+    const g = x.createRadialGradient(d.px, d.py, 0, d.px, d.py, d.r * 3);
+    g.addColorStop(0, ORR_COL[d.pl]); g.addColorStop(1, "transparent");
+    x.globalAlpha = .5; x.fillStyle = g; x.beginPath(); x.arc(d.px, d.py, d.r * 3, 0, 7); x.fill();
+    x.globalAlpha = 1; x.fillStyle = ORR_COL[d.pl]; x.beginPath(); x.arc(d.px, d.py, d.r, 0, 7); x.fill();
+  }
+  x.fillStyle = "rgba(228,238,255,.94)";
+  const placed = [];
+  for (let i = drawn.length - 1; i >= 0; i--) { // outer → inner
+    const d = drawn[i], ly = d.py - d.r - 6;
+    if (placed.some(p => Math.abs(p.x - d.px) < 34 && Math.abs(p.y - ly) < 12)) continue; // would collide → skip in crowded views
+    x.fillText(d.pl, d.px, ly); placed.push({ x: d.px, y: ly });
+  }
+  // readouts
+  document.getElementById("orr-date").textContent = orrDateStr(orrJd);
+  const noteEl = document.getElementById("orr-note");
+  if (al) {
+    noteEl.innerHTML = al.kind === "pair" ? `✨ <b>${al.a}</b> and <b>${al.b}</b> line up along Earth's sight-line — they shine side by side in our sky`
+      : al.kind === "opposition" ? `🔭 <b>${al.a}</b> at opposition — Earth sits directly between it and the Sun`
+      : `☀️ <b>${al.a}</b> passes behind/near the Sun from Earth — lost in the glare`;
+  } else if (Math.abs(orrJd - jdNow()) < 0.6) {
+    noteEl.innerHTML = `This is the Solar System <b>right now</b> — every planet at its true position`;
+  } else {
+    const yrs = (orrJd - jdNow()) / 365.25;
+    noteEl.textContent = Math.abs(yrs) < 1.5 ? "" : (yrs > 0 ? Math.round(yrs) + " years from today" : Math.round(-yrs) + " years before today");
+  }
+}
+function orrSetSpeedLabel() {
+  document.getElementById("orr-speed").textContent = ORR_SPEEDS[orrSpeedIx][1];
+  document.getElementById("orr-play").textContent = orrPlaying ? "⏸" : "▶";
+}
+function orrStep(ts) {
+  if (!orrPlaying || !orreryMode) return;
+  const dt = orrLastT ? Math.min((ts - orrLastT) / 1000, 0.1) : 0.016;
+  orrLastT = ts;
+  orrJd = Math.max(ORR_JD_MIN, Math.min(ORR_JD_MAX, orrJd + ORR_SPEEDS[orrSpeedIx][0] * dt));
+  if (orrJd === ORR_JD_MIN || orrJd === ORR_JD_MAX) { orrPlaying = false; orrSetSpeedLabel(); showToast("⏳ The orrery's maths is reliable from 1800 to 2050 — that's the edge"); }
+  drawOrrery();
+  orrRAF = requestAnimationFrame(orrStep);
+}
+function orrPlay(on) {
+  orrPlaying = on; orrLastT = 0; orrSetSpeedLabel();
+  if (orrRAF) cancelAnimationFrame(orrRAF);
+  if (on) orrRAF = requestAnimationFrame(orrStep);
+}
+function initOrrery() {
+  if (initOrrery.done) return; initOrrery.done = true;
+  const tabs = document.getElementById("orr-tabs");
+  tabs.innerHTML = ORR_VIEWS.map((v, i) => `<button class="orr-tab${i === orrView ? " on" : ""}" data-v="${i}">${v.name}</button>`).join("");
+  tabs.querySelectorAll(".orr-tab").forEach(b => b.addEventListener("click", () => {
+    orrView = +b.dataset.v;
+    tabs.querySelectorAll(".orr-tab").forEach(t => t.classList.toggle("on", +t.dataset.v === orrView));
+    drawOrrery();
+  }));
+  document.getElementById("orr-play").addEventListener("click", () => orrPlay(!orrPlaying));
+  document.getElementById("orr-slower").addEventListener("click", () => { orrSpeedIx = Math.max(0, orrSpeedIx - 1); orrSetSpeedLabel(); });
+  document.getElementById("orr-faster").addEventListener("click", () => { orrSpeedIx = Math.min(ORR_SPEEDS.length - 1, orrSpeedIx + 1); orrSetSpeedLabel(); });
+  document.getElementById("orr-today").addEventListener("click", () => { orrJd = jdNow(); drawOrrery(); });
+  // drag = scrub time; short tap = open a planet's story
+  const c = document.getElementById("orr-canvas");
+  let down = false, lx = 0, moved = 0, sx = 0, sy = 0;
+  c.addEventListener("pointerdown", e => { down = true; moved = 0; lx = e.clientX; sx = e.clientX; sy = e.clientY; c.setPointerCapture(e.pointerId); });
+  c.addEventListener("pointermove", e => {
+    if (!down) return;
+    const dx = e.clientX - lx; lx = e.clientX; moved += Math.abs(dx);
+    if (orrPlaying) orrPlay(false);
+    orrJd = Math.max(ORR_JD_MIN, Math.min(ORR_JD_MAX, orrJd + dx * ORR_VIEWS[orrView].dpp));
+    drawOrrery();
+  });
+  c.addEventListener("pointerup", e => {
+    down = false;
+    if (moved > 7) return;
+    const r = c.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+    const cw = c.clientWidth, view = ORR_VIEWS[orrView], scale = (cw / 2 - 16) / view.maxAU;
+    let hit = null, hd = 20;
+    if (Math.hypot(mx - cw / 2, my - cw / 2) < 20) hit = "The Sun";
+    for (const pl of view.planets) {
+      const p = ephHelio(pl, orrJd), px = cw / 2 + p.x * scale, py = cw / 2 - p.y * scale;
+      const d = Math.hypot(mx - px, my - py); if (d < hd) { hd = d; hit = pl; }
+    }
+    if (hit) { const o = allObjects.find(a => a.name === hit); if (o) { orrPlay(false); openPanel(o, o._el); } }
+  });
+}
+function setOrreryMode(on) {
+  if (on) { if (scaleMode) setScaleMode(false); if (calMode) setCalMode(false); if (compareMode) setCompareMode(false); if (farMode) setFarMode(false); }
+  orreryMode = on;
+  document.getElementById("orrSpace").classList.toggle("on", on);
+  toggleModeChrome(on);
+  closePanel(); if (typeof closeTonight === "function") closeTonight();
+  if (on) { initOrrery(); orrJd = jdNow(); orrPlaying = false; orrSetSpeedLabel(); drawOrrery(); } // start paused at "now" — press ▶ to set it spinning
+  else orrPlay(false);
+  targetSpeed = 18;
+  setTimeout(() => { targetSpeed = 1.4; }, 600);
+}
+
+/* ============================================================
+   THE FAR FUTURE — the forward companion to the Cosmic Calendar.
+   Timescales run from ~10,000 years to a googol, far past any single
+   axis, so it's a step-through of eras rather than a to-scale line.
+   ============================================================ */
+var farMode = false;
+const FAR_EVENTS = [ // [scale label, title, blurb, optional object link]
+  ["~13,000 years", "Vega becomes the North Star", "Earth spins like a wobbling top, its axis tracing a slow 26,000-year circle. Polaris drifts aside and brilliant Vega takes its turn as the pole star — as it last did for Ice Age hunters.", "Vega"],
+  ["~100,000 years", "The constellations dissolve", "Every star is racing through the galaxy. Given enough time their patterns melt: Orion loses his shape, the Big Dipper bends out of true. No constellation you know survives.", null],
+  ["~1 million years", "Betelgeuse explodes", "Orion's red shoulder-star runs out of fuel and detonates as a supernova — for weeks it blazes bright enough to cast shadows at night and be seen in broad daylight, then fades forever.", "Betelgeuse"],
+  ["~250 million years", "A new supercontinent", "The drifting continents crawl back together into a single landmass, as they have again and again. In the same span the Sun completes one more lap around the Milky Way — a single 'galactic year'.", "The Milky Way"],
+  ["~600 million years", "The last total solar eclipse", "The Moon drifts about 3.8 cm farther from Earth each year. Eventually it appears too small to ever fully cover the Sun again — and total eclipses, one of nature's greatest spectacles, end for good.", "The Moon"],
+  ["~1 billion years", "Earth's oceans boil away", "The Sun has been slowly brightening all along. Now it grows hot enough to evaporate the seas. Earth becomes a scorched, steamy world — complex life's long run is over.", "Earth"],
+  ["~4.5 billion years", "Andromeda collides with us", "The Andromeda galaxy has been falling toward us for eons. The two giant spirals finally crash and merge over hundreds of millions of years into a single elliptical galaxy — sometimes nicknamed 'Milkomeda'.", "Andromeda"],
+  ["~5 billion years", "The Sun swells into a red giant", "Its core hydrogen spent, the Sun balloons hundreds of times wider, swallowing Mercury and Venus — and scorching or engulfing the Earth. Our star's death has begun.", "The Sun"],
+  ["~6.5 billion years", "The Sun becomes an ember", "The dying Sun gently puffs its outer layers into a glowing shell of gas and shrinks to a white dwarf — an Earth-sized cinder that will cool and fade for the rest of time.", null],
+  ["~100 billion years", "The sky goes dark", "The universe's expansion accelerates, carrying every other galaxy beyond the horizon of what we can ever see. Far-future astronomers in Milkomeda would find an empty, starless void beyond their own galaxy.", "The Observable Universe"],
+  ["~100 trillion years", "The last star dies", "Star formation has long since sputtered out. The final, frugal red dwarfs — stars that sip their fuel for trillions of years — flicker out one by one. The cosmos goes truly dark. The age of starlight is over.", null],
+  ["10²⁰ years", "Galaxies come apart", "In the long dark, dead stars slowly scatter — most flung into intergalactic space, the rest spiralling into the monstrous black holes at galactic hearts. Galaxies themselves cease to exist.", "Sagittarius A*"],
+  ["10⁴⁰ years", "Matter itself decays", "If protons are not truly eternal, they finally crumble. Every dead star, every drifting planet, every stray atom evaporates into faint radiation. Only black holes remain — the Black Hole Era.", null],
+  ["10⁶⁴–10¹⁰⁰ years", "The black holes evaporate", "Even black holes are not forever. They leak a whisper of Hawking radiation and, across almost unimaginable spans, shrink and vanish — the smallest first, the largest supermassive giants surviving until a googol years.", "Sagittarius A*"],
+  ["beyond a googol years", "The heat death", "Nothing is left but a cold, ever-thinning mist of particles drifting through an endlessly expanding dark, forever approaching absolute zero. Maximum entropy. Silence. The universe simply… continues, empty, for all time.", null],
+];
+let farSel = 0;
+function renderFar() {
+  const [scale, title, blurb, link] = FAR_EVENTS[farSel];
+  const strip = document.getElementById("far-strip");
+  strip.querySelectorAll(".far-dot").forEach(n => n.remove());
+  const n = FAR_EVENTS.length;
+  FAR_EVENTS.forEach((ev, i) => {
+    const d = document.createElement("button");
+    d.className = "far-dot" + (i === farSel ? " on" : "");
+    d.style.left = (n === 1 ? 50 : (i / (n - 1)) * 100) + "%";
+    d.title = ev[1];
+    d.addEventListener("click", () => { farSel = i; renderFar(); });
+    strip.appendChild(d);
+  });
+  document.getElementById("far-scale").textContent = scale + " from now";
+  document.getElementById("far-title").textContent = title;
+  document.getElementById("far-blurb").textContent = blurb;
+  const ex = document.getElementById("far-explore");
+  ex.style.display = link ? "" : "none";
+  if (link) { ex.textContent = "Explore " + link + " →"; ex.onclick = () => { const o = allObjects.find(a => a.name === link); if (o) openPanel(o, o._el); }; }
+  document.getElementById("far-count").textContent = `era ${farSel + 1} of ${n}`;
+  document.getElementById("far-prev").disabled = farSel === 0;
+  document.getElementById("far-next").disabled = farSel === n - 1;
+}
+function farGo(d) { farSel = Math.max(0, Math.min(FAR_EVENTS.length - 1, farSel + d)); renderFar(); }
+document.getElementById("far-prev").addEventListener("click", () => farGo(-1));
+document.getElementById("far-next").addEventListener("click", () => farGo(1));
+function setFarMode(on) {
+  if (on) { if (scaleMode) setScaleMode(false); if (calMode) setCalMode(false); if (compareMode) setCompareMode(false); if (orreryMode) setOrreryMode(false); }
+  farMode = on;
+  document.getElementById("farSpace").classList.toggle("on", on);
+  toggleModeChrome(on);
+  closePanel(); if (typeof closeTonight === "function") closeTonight();
+  if (on) renderFar();
   targetSpeed = 18;
   setTimeout(() => { targetSpeed = 1.4; }, 600);
 }
