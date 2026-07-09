@@ -215,6 +215,34 @@
     font-size: 12px; letter-spacing: .3em; text-transform: uppercase;
     color: var(--accent); margin-bottom: 14px;
   }
+  /* Weight-on-other-worlds widget */
+  #p-weight { margin-bottom: 26px; }
+  #p-weight.hidden { display: none; }
+  .wcard {
+    background: linear-gradient(135deg, rgba(255,215,94,.09), rgba(192,132,252,.09));
+    border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px;
+  }
+  .wcard .wbig { font-size: 20px; font-weight: 800; color: #ffe9a8; }
+  .wcard .wbig b { color: #fff; }
+  .wcard .wsub { font-size: 12.5px; color: #d5e2f7; margin-top: 5px; line-height: 1.5; }
+  .wcard .wquip { font-size: 12.5px; color: var(--dim); font-style: italic; margin-top: 6px; }
+  .wcard .wprompt { font-size: 13.5px; color: var(--ink); margin-bottom: 10px; }
+  .wrow { display: flex; gap: 8px; align-items: center; }
+  #w-input {
+    width: 92px; background: rgba(10,14,40,.7); color: var(--ink);
+    border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 14px; font-family: inherit;
+  }
+  .wunit { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .wunit button {
+    background: none; border: none; color: var(--dim); padding: 8px 11px; font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  .wunit button.on { background: rgba(125,211,252,.18); color: var(--accent); }
+  .wgo {
+    background: rgba(125,211,252,.14); border: 1px solid var(--line); color: var(--accent);
+    border-radius: 8px; padding: 8px 14px; font-size: 13px; cursor: pointer; font-family: inherit;
+  }
+  .wgo:hover { border-color: var(--accent); }
+  .wchange { color: var(--accent); cursor: pointer; font-size: 11.5px; margin-top: 8px; display: inline-block; }
   #panel .fact {
     display: flex; gap: 12px; align-items: flex-start;
     background: var(--card); border: 1px solid var(--line);
@@ -331,6 +359,42 @@
   #sv-point.active { background: linear-gradient(135deg, rgba(125,211,252,.3), rgba(192,132,252,.3)); border-color: var(--accent); color: var(--accent); }
   #sv-bottom .nav-btn { white-space: nowrap; }
   #sv-time { background: linear-gradient(135deg, rgba(255,215,94,.18), rgba(192,132,252,.14)); }
+
+  /* ---------- Size Comparison mode ---------- */
+  #compareSpace {
+    position: fixed; inset: 0; z-index: 4; display: none;
+    flex-direction: column; align-items: center; justify-content: flex-start;
+    gap: 16px; padding: 84px 16px 100px; text-align: center; overflow-y: auto;
+  }
+  #compareSpace.on { display: flex; }
+  #cmp-head .kicker { font-size: 11px; letter-spacing: .3em; text-transform: uppercase; color: var(--accent); margin-bottom: 6px; }
+  #cmp-head h1 { font-size: clamp(20px, 3vw, 32px); font-weight: 700; }
+  #cmp-pickers { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  #cmp-pickers select {
+    background: rgba(10,14,40,.8); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 10px; padding: 9px 12px; font-size: 14px; font-family: inherit; cursor: pointer; max-width: 44vw;
+  }
+  #cmp-pickers .cmp-mid { color: var(--dim); font-size: 13px; letter-spacing: .08em; }
+  #cmp-swap {
+    background: rgba(125,211,252,.12); border: 1px solid var(--line); color: var(--accent);
+    border-radius: 10px; padding: 9px 13px; font-size: 15px; cursor: pointer; font-family: inherit;
+  }
+  #cmp-swap:hover { border-color: var(--accent); }
+  #cmp-canvas { width: min(620px, 94vw); height: auto; }
+  #cmp-count {
+    font-size: clamp(34px, 8vw, 64px); font-weight: 800; letter-spacing: .01em;
+    background: linear-gradient(120deg, #7dd3fc, #e0f2fe 40%, #c084fc 80%);
+    -webkit-background-clip: text; background-clip: text; color: transparent; line-height: 1.05;
+  }
+  #cmp-line { font-size: 15px; color: #d5e2f7; margin-top: 6px; }
+  #cmp-line b { color: var(--ink); }
+  #cmp-quip { font-size: 13.5px; color: var(--dim); font-style: italic; margin-top: 8px; max-width: 460px; }
+  #cmp-presets { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 2px; }
+  .cmp-chip {
+    background: rgba(10,14,40,.7); border: 1px solid var(--line); color: var(--dim);
+    border-radius: 999px; padding: 7px 14px; font-size: 12px; cursor: pointer; font-family: inherit;
+  }
+  .cmp-chip:hover { color: var(--accent); border-color: var(--accent); }
 
   /* ---------- Cosmic Calendar mode ---------- */
   #calSpace {
@@ -502,6 +566,7 @@
   <a class="mode-item" id="mi-fly" href="fly/" role="menuitem"><span class="mi-ic">🚀</span><span><b>3D Flight</b><em>Fly through the solar system in real 3D</em></span></a>
   <button class="mode-item" id="mi-scale" role="menuitem"><span class="mi-ic">📏</span><span><b>Scale of the Universe</b><em>Pinch to zoom from the ISS to the cosmos</em></span></button>
   <button class="mode-item" id="mi-cal" role="menuitem"><span class="mi-ic">📅</span><span><b>Cosmic Calendar</b><em>13.8 billion years as a single year</em></span></button>
+  <button class="mode-item" id="mi-compare" role="menuitem"><span class="mi-ic">🆚</span><span><b>Size Comparison</b><em>How many of one world fit inside another</em></span></button>
   <button class="mode-item" id="mi-tonight" role="menuitem"><span class="mi-ic">🌙</span><span><b>Tonight's Sky</b><em>See what's above you right now</em></span></button>
 </div>
 
@@ -586,6 +651,26 @@
   </div>
 </div>
 
+<div id="compareSpace">
+  <div id="cmp-head">
+    <div class="kicker">Size Comparison</div>
+    <h1>How many fit inside?</h1>
+  </div>
+  <div id="cmp-pickers">
+    <select id="cmp-a" aria-label="Smaller object"></select>
+    <span class="cmp-mid">fit inside</span>
+    <select id="cmp-b" aria-label="Larger object"></select>
+    <button id="cmp-swap" title="Swap">⇄</button>
+  </div>
+  <canvas id="cmp-canvas" width="620" height="300"></canvas>
+  <div id="cmp-result">
+    <div id="cmp-count"></div>
+    <div id="cmp-line"></div>
+    <div id="cmp-quip"></div>
+  </div>
+  <div id="cmp-presets"></div>
+</div>
+
 <div id="calSpace">
   <div id="cal-head">
     <div class="kicker">The Cosmic Calendar</div>
@@ -623,6 +708,7 @@
     <div class="tagline" id="p-tagline"></div>
     <div id="p-imgwrap"><img id="p-img" alt=""><div class="credit" id="p-credit"></div></div>
     <div class="stats" id="p-stats"></div>
+    <div id="p-weight"></div>
     <h3>✦ Fun facts</h3>
     <div id="p-facts"></div>
   </div>
@@ -1475,6 +1561,7 @@ addEventListener("keydown", (e) => {
     if (panel.classList.contains("open")) { closePanel(); e.stopImmediatePropagation(); }
     else if (document.getElementById("tonight").classList.contains("open")) { closeTonight(); e.stopImmediatePropagation(); }
     else if (calMode) { setCalMode(false); e.stopImmediatePropagation(); }
+    else if (compareMode) { setCompareMode(false); e.stopImmediatePropagation(); }
     else if (scaleMode) { setScaleMode(false); e.stopImmediatePropagation(); }
     return;
   }
@@ -1523,6 +1610,7 @@ function openPanel(o, btn) {
   document.getElementById("p-facts").innerHTML = o.facts.map(
     f => `<div class="fact"><span class="star">✦</span><span>${f}</span></div>`
   ).join("");
+  renderWeight(o.name);
   document.getElementById("panel-scroll").scrollTop = 0;
   panel.classList.add("open");
   if (!explored.has(o.name)) {
@@ -1537,6 +1625,91 @@ function openPanel(o, btn) {
   }
 }
 function closePanel() { panel.classList.remove("open"); }
+
+/* ============================================================
+   WEIGHT ON OTHER WORLDS — enter your weight once; every body with
+   a surface shows what you'd weigh there. (surface gravity in g)
+   ============================================================ */
+const GRAVITY = {
+  "The Sun": 27.9, "Mercury": 0.38, "Venus": 0.91, "Earth": 1.0, "The Moon": 0.166,
+  "Mars": 0.38, "The Asteroid Belt": 0.029, "Jupiter": 2.53, "Saturn": 1.07,
+  "Uranus": 0.886, "Neptune": 1.14, "Pluto": 0.063, "A Pulsar": 1.9e11,
+  "Betelgeuse": 0.0004, "The ISS": 0, // 0 → weightless (free-fall)
+};
+const GRAVITY_WHERE = { // what "here" means when the object isn't a single solid body
+  "The Asteroid Belt": "standing on Ceres, the belt's largest body",
+  "A Pulsar": "on a neutron star's surface", "Betelgeuse": "on Betelgeuse's wispy surface",
+  "The Sun": "at the Sun's surface (if you somehow survived)",
+};
+let weightState = JSON.parse(localStorage.getItem("cosmic-weight") || "null"); // { kg, unit }
+function fmtWeight(kg, unit) {
+  if (unit === "lb") {
+    const lb = kg * 2.20462;
+    if (lb >= 1 && lb < 1e5) return Math.round(lb).toLocaleString("en-US") + " lb";
+    if (lb < 1) return (lb * 16).toFixed(1) + " oz";
+  } else {
+    if (kg < 1) return Math.round(kg * 1000) + " g";
+    if (kg < 1e5) return (kg < 100 ? kg.toFixed(1) : Math.round(kg).toLocaleString("en-US")) + " kg";
+  }
+  const t = kg / 1000; // extremes → metric tonnes (universal)
+  if (t < 1e3) return Math.round(t).toLocaleString("en-US") + " tonnes";
+  if (t < 1e6) return (t / 1e3).toFixed(1) + " thousand tonnes";
+  if (t < 1e9) return (t / 1e6).toFixed(1) + " million tonnes";
+  if (t < 1e12) return (t / 1e9).toFixed(1) + " billion tonnes";
+  return (t / 1e12).toPrecision(2) + " trillion tonnes";
+}
+function gravityQuip(g) {
+  if (g === 0) return "You'd be weightless — floating in orbital free-fall, just like the astronauts.";
+  if (g > 1e6) return "The crush of a dead star: you'd be flattened into a film of atoms in an instant.";
+  if (g > 10) return "Utterly unsurvivable — you'd be crushed flat under your own colossal weight.";
+  if (g > 2) return "Standing would be a struggle; lifting an arm would feel like a workout.";
+  if (g > 1.15) return "Noticeably heavier — every step would feel like wading through sand.";
+  if (g >= 0.85) return "Almost exactly like home — you'd barely notice the difference.";
+  if (g > 0.3) return "Pleasantly light — you'd walk with an easy spring in your step.";
+  if (g > 0.08) return "You could leap several metres in a single bound, like the Apollo astronauts.";
+  return "Barely any pull at all — a gentle jump could send you drifting off into space.";
+}
+function renderWeight(name) {
+  const el = document.getElementById("p-weight");
+  if (!(name in GRAVITY)) { el.className = "hidden"; el.innerHTML = ""; return; }
+  el.className = "";
+  const g = GRAVITY[name];
+  if (!weightState) {
+    el.innerHTML =
+      `<div class="wcard"><div class="wprompt">⚖️ Curious what <b>you'd</b> weigh here?</div>` +
+      `<div class="wrow"><input id="w-input" type="number" inputmode="decimal" placeholder="your weight" min="1" max="1000">` +
+      `<div class="wunit"><button data-u="kg" class="on">kg</button><button data-u="lb">lb</button></div>` +
+      `<button class="wgo" id="w-go">Go</button></div></div>`;
+    let unit = "kg";
+    el.querySelectorAll(".wunit button").forEach(b => b.addEventListener("click", () => {
+      unit = b.dataset.u; el.querySelectorAll(".wunit button").forEach(x => x.classList.toggle("on", x === b));
+    }));
+    const submit = () => {
+      const v = parseFloat(document.getElementById("w-input").value);
+      if (!v || v <= 0) return;
+      weightState = { kg: unit === "lb" ? v / 2.20462 : v, unit };
+      localStorage.setItem("cosmic-weight", JSON.stringify(weightState));
+      renderWeight(name);
+    };
+    document.getElementById("w-go").addEventListener("click", submit);
+    document.getElementById("w-input").addEventListener("keydown", e => { if (e.key === "Enter") submit(); });
+    return;
+  }
+  const w = weightState.kg * g;
+  const earthDisp = fmtWeight(weightState.kg, weightState.unit);
+  const where = GRAVITY_WHERE[name] ? ` <span style="color:var(--dim)">(${GRAVITY_WHERE[name]})</span>` : "";
+  const bigLine = g === 0
+    ? `⚖️ You'd be <b>weightless</b>`
+    : `⚖️ You'd weigh <b>${fmtWeight(w, weightState.unit)}</b>`;
+  el.innerHTML =
+    `<div class="wcard"><div class="wbig">${bigLine}</div>` +
+    `<div class="wsub">${name === "Earth" ? "your home weight" : g === 0 ? `you weigh ${earthDisp} on the ground` : `vs ${earthDisp} on Earth`}${where}</div>` +
+    `<div class="wquip">${gravityQuip(g)}</div>` +
+    `<span class="wchange" id="w-change">change my weight</span></div>`;
+  document.getElementById("w-change").addEventListener("click", () => {
+    weightState = null; localStorage.removeItem("cosmic-weight"); renderWeight(name);
+  });
+}
 document.getElementById("panel-close").addEventListener("click", closePanel);
 
 function showToast(msg) {
@@ -1560,9 +1733,10 @@ document.addEventListener("click", (e) => {
 document.getElementById("mi-fly").addEventListener("click", closeModeMenu); // an <a>, just closes
 document.getElementById("mi-scale").addEventListener("click", () => { closeModeMenu(); setScaleMode(true); });
 document.getElementById("mi-cal").addEventListener("click", () => { closeModeMenu(); setCalMode(true); });
+document.getElementById("mi-compare").addEventListener("click", () => { closeModeMenu(); setCompareMode(true); });
 document.getElementById("mi-tonight").addEventListener("click", () => { closeModeMenu(); openTonight(); });
 document.getElementById("btn-exit-mode").addEventListener("click", () => {
-  if (scaleMode) setScaleMode(false); else if (calMode) setCalMode(false);
+  if (scaleMode) setScaleMode(false); else if (calMode) setCalMode(false); else if (compareMode) setCompareMode(false);
 });
 // Shared chrome toggle: the modes hide the journey HUD and swap Explore ⇄ Journey
 function toggleModeChrome(on) {
@@ -1754,6 +1928,7 @@ addEventListener("touchend", (e) => { if (e.touches.length < 2) pinchDist = null
 
 function setScaleMode(on) {
   if (on && calMode) setCalMode(false);
+  if (on && compareMode) setCompareMode(false);
   scaleMode = on;
   document.getElementById("scaleSpace").classList.toggle("on", on);
   document.getElementById("scale-hud").classList.toggle("on", on);
@@ -3021,11 +3196,147 @@ document.getElementById("cal-prev").addEventListener("click", () => calGo(-1));
 document.getElementById("cal-next").addEventListener("click", () => calGo(1));
 function setCalMode(on) {
   if (on && scaleMode) setScaleMode(false);
+  if (on && compareMode) setCompareMode(false);
   calMode = on;
   document.getElementById("calSpace").classList.toggle("on", on);
   toggleModeChrome(on);
   closePanel(); closeTonight();
   if (on) { calSel = 0; renderCal(); }
+  targetSpeed = 18;
+  setTimeout(() => { targetSpeed = 1.4; }, 600);
+}
+
+/* ============================================================
+   SIZE COMPARISON — how many of one body fit inside another (by volume)
+   ============================================================ */
+var compareMode = false;
+const CMP_ORDER = ["Voyager 1", "The ISS", "A Pulsar", "Pluto", "The Moon", "Mercury",
+  "Mars", "Venus", "Earth", "Neptune", "Uranus", "Saturn", "Jupiter", "TRAPPIST-1",
+  "Proxima Centauri", "The Sun", "Sirius", "Vega", "Antares", "Betelgeuse"];
+const CMP_DIA = {}; for (const [d, n] of SCALE_SET) CMP_DIA[n] = d;
+const CMP_COL = {
+  "Voyager 1": "#cfd6e0", "The ISS": "#cfe4ff", "A Pulsar": "#cbb8ff", "Pluto": "#c9a374",
+  "The Moon": "#cfcfc6", "Mercury": "#a99884", "Mars": "#c96a3c", "Venus": "#e8cd96",
+  "Earth": "#3a86d8", "Neptune": "#3a6fd0", "Uranus": "#a8dcda", "Saturn": "#e6c67a",
+  "Jupiter": "#d9b98a", "TRAPPIST-1": "#e0684a", "Proxima Centauri": "#ff7a4a",
+  "The Sun": "#ffd24a", "Sirius": "#dbeaff", "Vega": "#cfe0ff", "Antares": "#ff6a34", "Betelgeuse": "#ff7a3a",
+};
+const dispName = n => n.replace(/^The /, "");
+const pluralName = n => { const d = dispName(n); return d.endsWith("s") ? d : d + "s"; };
+function fmtCount(n) {
+  if (n < 1000) return Math.round(n).toLocaleString("en-US");
+  const units = [[1e3, "thousand"], [1e6, "million"], [1e9, "billion"], [1e12, "trillion"], [1e15, "quadrillion"], [1e18, "quintillion"], [1e21, "sextillion"]];
+  for (let i = units.length - 1; i >= 0; i--) if (n >= units[i][0]) {
+    const v = n / units[i][0];
+    return (v < 10 ? v.toFixed(1) : Math.round(v).toLocaleString("en-US")) + " " + units[i][1];
+  }
+}
+function cmpEquivalence(n) {
+  if (n >= 1e21) return "More than all the stars in the entire observable universe.";
+  if (n >= 1e18) return "Rivalling every grain of sand on all of Earth's beaches and deserts.";
+  if (n >= 1e13) return "More than the number of cells in your whole body.";
+  if (n >= 1e11) return "More than every human who has ever lived — a hundred billion and counting.";
+  if (n >= 1e9) return "Billions upon billions — the cosmos loves a big number.";
+  if (n >= 1e6) return "Millions — a packed stadium of 50,000, repeated dozens of times over.";
+  if (n >= 1e3) return "Thousands — enough to give everyone in a small town their own.";
+  if (n >= 50) return "Enough to fill a lecture hall.";
+  if (n >= 8) return "A neat handful — you could almost count them out.";
+  return "Just a few, with room to rattle around inside.";
+}
+function drawOrb(x, cx, cy, r, col) {
+  // soft outer glow
+  const sg = x.createRadialGradient(cx, cy, r, cx, cy, r * 1.6);
+  sg.addColorStop(0, hexA(col, .35)); sg.addColorStop(1, hexA(col, 0));
+  x.fillStyle = sg; x.beginPath(); x.arc(cx, cy, r * 1.6, 0, 7); x.fill();
+  // shaded sphere
+  const g = x.createRadialGradient(cx - r * .3, cy - r * .3, r * .1, cx, cy, r);
+  g.addColorStop(0, col); g.addColorStop(1, shade(col, -0.45));
+  x.fillStyle = g; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill();
+}
+function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`; }
+function shade(hex, amt) { const n = parseInt(hex.slice(1), 16); const cl = v => Math.max(0, Math.min(255, Math.round(v + amt * 255))); return `#${(1 << 24 | cl(n >> 16 & 255) << 16 | cl(n >> 8 & 255) << 8 | cl(n & 255)).toString(16).slice(1)}`; }
+function drawCompareVisual(inner, outer) {
+  const c = document.getElementById("cmp-canvas"), x = c.getContext("2d");
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  const cw = c.clientWidth || 620, ch = Math.round(cw * 0.52);
+  c.width = cw * dpr; c.height = ch * dpr; x.setTransform(dpr, 0, 0, dpr, 0, 0);
+  x.clearRect(0, 0, cw, ch);
+  const cx = cw / 2, cy = ch * 0.46, Ro = ch * 0.35;
+  const Ri = Math.max(2, Ro * (CMP_DIA[inner] / CMP_DIA[outer]));
+  drawOrb(x, cx, cy, Ro, CMP_COL[outer] || "#888");
+  drawOrb(x, cx, cy, Ri, CMP_COL[inner] || "#ccc");
+  if (Ri > 3) { x.strokeStyle = "rgba(255,255,255,.5)"; x.lineWidth = 1; x.beginPath(); x.arc(cx, cy, Ri, 0, 7); x.stroke(); }
+  x.textAlign = "center"; x.fillStyle = "#eaf2ff"; x.font = "bold 14px sans-serif";
+  x.fillText(dispName(outer), cx, cy + Ro + 22);
+  if (Ri < 10) {
+    x.fillStyle = "#ffd75e"; x.font = "12px sans-serif";
+    x.fillText(dispName(inner) + (Ri <= 2.5 ? " — a speck at this scale" : ""), cx, cy - Ro - 8);
+    x.strokeStyle = "rgba(255,215,94,.5)"; x.lineWidth = 1;
+    x.beginPath(); x.moveTo(cx, cy - Ro + 2); x.lineTo(cx, cy - 4); x.stroke();
+  } else {
+    x.fillStyle = "#04010e"; x.font = "bold 11px sans-serif"; x.fillText(dispName(inner), cx, cy + 4);
+  }
+}
+let cmpAnimRAF = null, cmpAnimFinal = null;
+function animateCount(n) {
+  if (cmpAnimRAF) cancelAnimationFrame(cmpAnimRAF);
+  clearTimeout(cmpAnimFinal);
+  const el = document.getElementById("cmp-count"), t0 = performance.now(), dur = 700;
+  const step = () => {
+    const t = Math.min(1, (performance.now() - t0) / dur), e = 1 - Math.pow(1 - t, 3);
+    el.textContent = fmtCount(Math.max(1, n * e));
+    if (t < 1) cmpAnimRAF = requestAnimationFrame(step);
+  };
+  step();
+  // guarantee the final value even if rAF is throttled (e.g. background tab)
+  cmpAnimFinal = setTimeout(() => { el.textContent = fmtCount(n); }, dur + 60);
+}
+function renderCompare() {
+  const a = document.getElementById("cmp-a").value, b = document.getElementById("cmp-b").value;
+  const countEl = document.getElementById("cmp-count"), lineEl = document.getElementById("cmp-line"), quipEl = document.getElementById("cmp-quip");
+  if (a === b) {
+    if (cmpAnimRAF) cancelAnimationFrame(cmpAnimRAF);
+    drawCompareVisual(a, b); countEl.textContent = "1";
+    lineEl.innerHTML = "They're the same object — a perfect fit!";
+    quipEl.textContent = "Pick two different worlds to see the scale of the cosmos.";
+    return;
+  }
+  let inner = a, outer = b, flipped = false;
+  if (CMP_DIA[a] > CMP_DIA[b]) { inner = b; outer = a; flipped = true; }
+  const n = Math.pow(CMP_DIA[outer] / CMP_DIA[inner], 3);
+  drawCompareVisual(inner, outer);
+  animateCount(n);
+  lineEl.innerHTML = flipped
+    ? `<b>${dispName(outer)}</b> is the bigger one — that many <b>${pluralName(inner)}</b> fit inside it`
+    : `<b>${pluralName(inner)}</b> fit inside <b>${dispName(outer)}</b>`;
+  quipEl.textContent = cmpEquivalence(n);
+}
+let cmpInit = false;
+function initCompare() {
+  if (cmpInit) return; cmpInit = true;
+  const selA = document.getElementById("cmp-a"), selB = document.getElementById("cmp-b");
+  const opts = CMP_ORDER.map(n => `<option value="${n}">${dispName(n)}</option>`).join("");
+  selA.innerHTML = opts; selB.innerHTML = opts;
+  selA.value = "Earth"; selB.value = "The Sun";
+  selA.addEventListener("change", renderCompare);
+  selB.addEventListener("change", renderCompare);
+  document.getElementById("cmp-swap").addEventListener("click", () => {
+    const t = selA.value; selA.value = selB.value; selB.value = t; renderCompare();
+  });
+  const presets = [["Earth", "The Sun"], ["The Moon", "Earth"], ["The Sun", "Betelgeuse"], ["The ISS", "The Moon"], ["Earth", "Jupiter"]];
+  document.getElementById("cmp-presets").innerHTML = presets.map(([a, b], i) =>
+    `<button class="cmp-chip" data-i="${i}">${dispName(a)} in ${dispName(b)}</button>`).join("");
+  document.querySelectorAll("#cmp-presets .cmp-chip").forEach((el, i) => el.addEventListener("click", () => {
+    selA.value = presets[i][0]; selB.value = presets[i][1]; renderCompare();
+  }));
+}
+function setCompareMode(on) {
+  if (on) { if (scaleMode) setScaleMode(false); if (calMode) setCalMode(false); }
+  compareMode = on;
+  document.getElementById("compareSpace").classList.toggle("on", on);
+  toggleModeChrome(on);
+  closePanel(); if (typeof closeTonight === "function") closeTonight();
+  if (on) { initCompare(); renderCompare(); }
   targetSpeed = 18;
   setTimeout(() => { targetSpeed = 1.4; }, 600);
 }
