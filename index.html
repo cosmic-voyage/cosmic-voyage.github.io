@@ -385,10 +385,12 @@
   .cu-row { display: flex; gap: 12px; align-items: flex-start; }
   .cu-row + .cu-row { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
   .cu-when {
-    flex-shrink: 0; min-width: 62px; text-align: center; font-weight: 800; font-size: 11px;
-    color: #aef3ff; border: 1px solid rgba(174,243,255,.34); background: rgba(174,243,255,.08);
-    border-radius: 999px; padding: 4px 8px; margin-top: 1px; letter-spacing: .02em;
+    flex-shrink: 0; min-width: 64px; display: flex; flex-direction: column; align-items: center; gap: 1px;
+    border: 1px solid rgba(174,243,255,.34); background: rgba(174,243,255,.08);
+    border-radius: 13px; padding: 5px 9px; margin-top: 1px;
   }
+  .cu-when .cu-rel { font-weight: 800; font-size: 11px; color: #aef3ff; letter-spacing: .02em; }
+  .cu-when .cu-date { font-size: 9.5px; color: var(--dim); letter-spacing: .02em; }
   .cu-body { flex: 1; min-width: 0; }
   .cu-title { font-size: 14.5px; color: #eaf1ff; line-height: 1.45; }
   .cu-title b { color: #fff; }
@@ -735,12 +737,12 @@
     </div>
 
     <div class="tsec" id="highlights-sec">
-      <h3>✨ Don't miss tonight</h3>
+      <h3 id="highlights-h">✨ Don't miss tonight</h3>
       <div class="tcard" id="highlights-card"></div>
     </div>
 
     <div class="tsec" id="comingup-sec">
-      <h3>🔭 Coming up — worth looking up for</h3>
+      <h3 id="comingup-h">🔭 Coming up — worth looking up for</h3>
       <div class="tcard" id="comingup-card"></div>
     </div>
 
@@ -3419,11 +3421,13 @@ function computeHighlights() {
   else if (age > 13.6 && age < 16.3) out.push("🌕 <b>Full Moon</b> — bright all night; lovely for Moon-watching, harder for faint objects");
   return out;
 }
+const skyLocLabel = () => skyLoc.name === "Your location" ? "your location" : skyLoc.name;
 function renderHighlights() {
   const items = computeHighlights();
   const card = document.getElementById("highlights-card");
+  document.getElementById("highlights-h").textContent = "✨ Don't miss tonight over " + skyLocLabel();
   if (!items.length) {
-    card.innerHTML = `<div class="hlrow">🌌 No headline events tonight — a perfect excuse to just look up. From a dark spot, find the <span class="hltap" data-obj="The Milky Way">Milky Way core</span> low in the south.</div>`;
+    card.innerHTML = `<div class="hlrow">🌌 No headline events tonight — a perfect excuse to simply look up. From a truly dark spot, the <span class="hltap" data-obj="The Milky Way">Milky Way</span> itself is always worth seeking out.</div>`;
   } else {
     card.innerHTML = items.slice(0, 5).map(t => `<div class="hlrow">${t}</div>`).join("");
   }
@@ -3602,16 +3606,17 @@ function cuTimehint(h) {
   if (h >= 3 && h < 7) return ", in the pre-dawn sky";
   return "";
 }
-function cuWhen(jd) {
+function cuWhenParts(jd) { // { rel: "in 6d" | "", date: "15 Jul" } — near events show both
   const d = jd - jdNow();
-  if (d < 1) return "tonight";
-  if (d < 2) return "tomorrow";
-  if (d < 45) return "in " + Math.round(d) + "d";
-  const dt = cuDate(jd);
-  return dt.toLocaleDateString("en-US", d > 320 ? { month: "short", year: "numeric" } : { month: "short", day: "numeric" });
+  const date = cuDate(jd).toLocaleDateString("en-US", d > 320 ? { month: "short", year: "numeric" } : { day: "numeric", month: "short" });
+  let rel = "";
+  if (d < 1) rel = "tonight"; else if (d < 2) rel = "tomorrow"; else if (d < 45) rel = "in " + Math.round(d) + "d";
+  return { rel, date };
 }
 function cuRow(e) {
-  return `<div class="cu-row"><span class="cu-when">${cuWhen(e.jd)}</span>`
+  const w = cuWhenParts(e.jd);
+  const pill = w.rel ? `<span class="cu-rel">${w.rel}</span><span class="cu-date">${w.date}</span>` : `<span class="cu-rel">${w.date}</span>`;
+  return `<div class="cu-row"><span class="cu-when">${pill}</span>`
     + `<div class="cu-body"><div class="cu-title">${e.icon} ${e.title}</div><div class="cu-sub">${e.sub}</div></div></div>`;
 }
 // closest OBSERVABLE approach for each bright-planet pair in the next ~11 weeks
@@ -3738,6 +3743,7 @@ function cuEclipseInfo(lat, lon) {
 }
 function renderComingUp() {
   const card = document.getElementById("comingup-card"); if (!card) return;
+  document.getElementById("comingup-h").textContent = "🔭 Coming up over " + skyLocLabel();
   const lat = skyLoc.lat, lon = skyLoc.lon, events = [];
   cuPairings(lat, lon, events); cuMeteors(lat, lon, events); cuOppositions(lat, lon, events);
   cuElongations(lat, lon, events); cuMoon(events); cuSunEvents(lat, lon, events);
