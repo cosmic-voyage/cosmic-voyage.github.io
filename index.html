@@ -372,6 +372,14 @@
     font-size: 13px; font-weight: 600; letter-spacing: .04em; cursor: pointer; font-family: inherit;
   }
   #sky-sharebtn:hover { border-color: #ffe9a8; }
+  #sky-date-row { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 2px 0 6px; flex-wrap: wrap; }
+  #sky-date-row .sdr-label { font-size: 12px; color: var(--dim); letter-spacing: .02em; }
+  #sky-date {
+    background: rgba(10,14,40,.8); color: var(--ink); border: 1px solid var(--line);
+    border-radius: 8px; padding: 6px 10px; font-size: 13px; font-family: inherit; cursor: pointer;
+    color-scheme: dark;
+  }
+  #sky-date:hover { border-color: var(--accent); }
   .otd-row { display: flex; gap: 12px; align-items: flex-start; }
   .otd-row + .otd-row { margin-top: 13px; }
   .otd-year {
@@ -728,6 +736,10 @@
           <button class="mini-btn" id="st-back" title="One day earlier">−1d</button>
           <input id="sky-time" type="range" min="-720" max="720" step="5" value="0" aria-label="Scrub time (±12 hours)">
           <button class="mini-btn" id="st-fwd" title="One day later">+1d</button>
+        </div>
+        <div id="sky-date-row">
+          <span class="sdr-label">🗓 Jump to any date:</span>
+          <input id="sky-date" type="date" min="1800-01-01" max="2050-12-31" aria-label="Jump the sky to any date">
         </div>
         <div id="sky-time-label" style="display:none"></div>
         <button id="sky-fullbtn">🔭 Point at the sky (fullscreen)</button>
@@ -2900,6 +2912,14 @@ function initSkyControls() {
   stSlider.addEventListener("input", () => { skyMinOffset = +stSlider.value; updateSkyTimeUI(); });
   document.getElementById("st-back").addEventListener("click", () => { skyDayOffset -= 1; updateSkyTimeUI(); });
   document.getElementById("st-fwd").addEventListener("click", () => { skyDayOffset += 1; updateSkyTimeUI(); });
+  document.getElementById("sky-date").addEventListener("change", e => { // jump straight to any day (1800–2050)
+    if (!e.target.value) return;
+    const picked = new Date(e.target.value + "T12:00:00"); // local noon → no timezone day-shift
+    const today = new Date(); today.setHours(12, 0, 0, 0);
+    skyDayOffset = Math.round((picked - today) / 86400000);
+    skyMinOffset = 0; document.getElementById("sky-time").value = 0; // land at ~current time on that day; ±12h slider re-centres
+    updateSkyTimeUI();
+  });
   document.getElementById("sky-time-label").addEventListener("click", resetSkyTime);
   document.getElementById("sv-time").addEventListener("click", resetSkyTime);
 }
@@ -2923,6 +2943,8 @@ function updateSkyTimeUI() {
     svt.style.display = "";
     svt.innerHTML = `🕐 ${skySimDate().toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" })} <span style="opacity:.7">↺ now</span>`;
   }
+  const sd = document.getElementById("sky-date"); // keep the date picker in sync with slider / ±1d steps
+  if (sd) { const s = skySimDate(); sd.value = s.getFullYear() + "-" + String(s.getMonth() + 1).padStart(2, "0") + "-" + String(s.getDate()).padStart(2, "0"); }
   drawSkyMap();
 }
 function useMyLocation() {
