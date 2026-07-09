@@ -2491,6 +2491,17 @@ const STARS = [
   ["Scheat",23.0629,28.083,2.42,0],["Algenib",0.2207,15.184,2.83,0],["Enif",21.7364,9.875,2.39,0],
   ["Mirfak",3.4054,49.861,1.79,0],["Algol",3.1361,40.956,2.12,0],["Diphda",0.7265,-17.987,2.04,0],
   ["Peacock",20.4275,-56.735,1.94,0],["Rasalhague",17.5822,12.560,2.08,0],["Kochab",14.8451,74.156,2.08,0],
+  // added to flesh out more constellation figures (J2000)
+  ["Zeta Tau",5.6274,21.143,3.0,0],["Aludra",7.4009,-29.303,2.45,0],["Gomeisa",7.4527,8.289,2.89,0],
+  ["Izar",14.7499,27.074,2.35,0],["Nekkar",15.0322,40.390,3.49,0],["Seginus",14.5341,38.308,3.03,0],
+  ["Muphrid",13.9114,18.398,2.68,0],["Mahasim",5.9953,37.213,2.62,0],["Hassaleh",4.9500,33.166,2.69,0],
+  ["Sheliak",18.8347,33.363,3.52,0],["Sulafat",18.9824,32.690,3.25,0],["Delta Lyr",18.9089,36.899,4.30,0],
+  ["Zeta Lyr",18.7461,37.605,4.36,0],["Alshain",19.9219,6.407,3.71,0],["Okab",19.0904,13.863,2.99,0],
+  ["Delta Aql",19.4247,3.115,3.36,0],["Theta Aql",20.1882,-0.821,3.23,0],["Delta And",0.6555,30.861,3.27,0],
+  ["Gamma Per",3.0805,53.506,2.91,0],["Delta Per",3.7154,47.788,3.01,0],["Epsilon Per",3.9575,40.010,2.89,0],
+  ["Pherkad",15.3455,71.834,3.05,0],["Yildun",17.5369,86.586,4.35,0],["Eps UMi",16.7660,82.037,4.21,0],
+  ["Zeta UMi",15.7343,77.794,4.28,0],["Eps Cen",13.6647,-53.466,2.30,0],["Menkent",14.1113,-36.370,2.06,0],
+  ["Porrima",12.6942,-1.449,2.74,0],["Vindemiatrix",13.0362,10.959,2.83,0],["Heze",13.5787,-0.596,3.38,0],
 ];
 // Constellations as named stick figures — each gets a label at its centroid, and
 // (where one exists) a link to its fact panel in the journey.
@@ -2504,8 +2515,20 @@ const CONSTELLATIONS = [
   { name: "Summer Triangle", panel: null, lines: [["Vega","Deneb"],["Deneb","Altair"],["Altair","Vega"]] },
   { name: "Cygnus", panel: null, lines: [["Deneb","Sadr"],["Sadr","Albireo"],["Gienah Cyg","Sadr"],["Delta Cyg","Sadr"]] },
   { name: "Leo", panel: null, lines: [["Regulus","Algieba"],["Algieba","Zosma"],["Zosma","Denebola"],["Denebola","Regulus"]] },
-  { name: "Gemini", panel: null, lines: [["Castor","Pollux"]] },
-  { name: "Pegasus", panel: null, lines: [["Markab","Scheat"],["Scheat","Alpheratz"],["Alpheratz","Algenib"],["Algenib","Markab"],["Alpheratz","Mirach"],["Mirach","Almach"]] },
+  { name: "Gemini", panel: null, lines: [["Castor","Pollux"],["Pollux","Alhena"]] },
+  { name: "Pegasus", panel: null, lines: [["Markab","Scheat"],["Scheat","Alpheratz"],["Alpheratz","Algenib"],["Algenib","Markab"],["Markab","Enif"]] },
+  { name: "Taurus", panel: null, lines: [["Elnath","Aldebaran"],["Aldebaran","Zeta Tau"]] },
+  { name: "Canis Major", panel: null, lines: [["Mirzam","Sirius"],["Sirius","Wezen"],["Wezen","Adhara"],["Wezen","Aludra"],["Adhara","Aludra"]] },
+  { name: "Canis Minor", panel: null, lines: [["Procyon","Gomeisa"]] },
+  { name: "Boötes", panel: null, lines: [["Arcturus","Muphrid"],["Arcturus","Izar"],["Izar","Nekkar"],["Nekkar","Seginus"],["Seginus","Muphrid"]] },
+  { name: "Auriga", panel: null, lines: [["Capella","Menkalinan"],["Menkalinan","Mahasim"],["Mahasim","Elnath"],["Elnath","Hassaleh"],["Hassaleh","Capella"]] },
+  { name: "Lyra", panel: null, lines: [["Vega","Zeta Lyr"],["Zeta Lyr","Sheliak"],["Sheliak","Sulafat"],["Sulafat","Delta Lyr"],["Delta Lyr","Zeta Lyr"]] },
+  { name: "Aquila", panel: null, lines: [["Okab","Tarazed"],["Tarazed","Altair"],["Altair","Alshain"],["Altair","Delta Aql"],["Delta Aql","Theta Aql"]] },
+  { name: "Andromeda", panel: "Andromeda", lines: [["Alpheratz","Delta And"],["Delta And","Mirach"],["Mirach","Almach"]] },
+  { name: "Perseus", panel: null, lines: [["Gamma Per","Mirfak"],["Mirfak","Algol"],["Mirfak","Delta Per"],["Delta Per","Epsilon Per"]] },
+  { name: "Ursa Minor", panel: null, lines: [["Polaris","Yildun"],["Yildun","Eps UMi"],["Eps UMi","Zeta UMi"],["Zeta UMi","Kochab"],["Kochab","Pherkad"],["Pherkad","Zeta UMi"]] },
+  { name: "Centaurus", panel: null, lines: [["Alpha Cen","Hadar"],["Hadar","Eps Cen"],["Eps Cen","Menkent"]] },
+  { name: "Virgo", panel: null, lines: [["Spica","Heze"],["Heze","Porrima"],["Porrima","Vindemiatrix"]] },
 ];
 const CONST_LINES = CONSTELLATIONS.flatMap(c => c.lines);
 for (const c of CONSTELLATIONS) c.stars = [...new Set(c.lines.flat())];
@@ -2622,6 +2645,92 @@ const CONSTELLATION_LORE = {
       { flag: "🔭", who: "MODERN WEST", saw: "The Summer Triangle", text: "Vega (in Lyra, the harp), Deneb (in Cygnus, the swan) and Altair (in Aquila, the eagle) — three of summer's brightest stars, used to find your way around the sky." },
       { flag: "🎋", who: "CHINA & JAPAN", saw: "The Weaver and the Cowherd", text: "In the Qīxī / Tanabata legend, Vega is a weaver girl and Altair a cowherd — lovers separated by the Milky Way river, allowed to meet just once a year across a bridge of magpies." },
       { flag: "🦅", who: "POLYNESIA", saw: "Part of a great sky-bird", text: "Across the Pacific these bright stars served as navigation marks, some seen as pieces of a great bird flying the Milky Way." },
+    ],
+  },
+  "Taurus": {
+    tagline: "A charging bull's head, its red eye Aldebaran glaring out — with the Pleiades and Hyades star clusters riding on its shoulder and face.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Bull", text: "Zeus disguised himself as a magnificent white bull to carry off the princess Europa; only his head and shoulders rise from the sea, charging across the sky." },
+      { flag: "🏺", who: "MESOPOTAMIA", saw: "The Bull of Heaven", text: "One of the oldest constellations of all — the gods loosed this bull on the hero Gilgamesh over 4,000 years ago, and its dawn rising once marked the start of the farming year." },
+      { flag: "✨", who: "MANY CULTURES", saw: "The Pleiades", text: "The little cluster on the bull's shoulder is watched worldwide — the 'seven sisters' of Greece, Matariki to the Māori, Subaru in Japan — its rising marking seasons and new years." },
+    ],
+  },
+  "Canis Major": {
+    tagline: "Orion's great hunting dog, carrying Sirius — the brightest star in the entire night sky.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Great Dog", text: "The larger of Orion's two loyal hounds, forever bounding at the hunter's heels across the sky." },
+      { flag: "🏺", who: "ANCIENT EGYPT", saw: "The herald of the flood", text: "When Sirius (Sopdet) first rose at dawn each year, the Nile was about to flood — the single most important event in the Egyptian calendar." },
+      { flag: "☀️", who: "ROME", saw: "The Dog Days", text: "Sirius rising with the Sun in high summer gave us the sweltering 'dog days' — the Romans thought the star's heat added to the Sun's." },
+    ],
+  },
+  "Canis Minor": {
+    tagline: "Orion's little dog — barely two stars, but one of them, Procyon, blazes as the eighth-brightest in the sky.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Lesser Dog", text: "Orion's second hound. Its bright star Procyon means 'before the dog' — it rises just ahead of Sirius, the Great Dog's star." },
+      { flag: "🐕", who: "ARABIA", saw: "The Syrian Sirius", text: "Early Arab astronomers paired Procyon with Sirius as two sister stars straddling the Milky Way." },
+    ],
+  },
+  "Boötes": {
+    tagline: "A great kite (or ice-cream cone) of stars, anchored by brilliant orange Arcturus — the brightest star in the northern half of the sky.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Herdsman", text: "The ploughman or ox-driver, forever herding the Great Bear around the pole. Arcturus, 'the bear-guard', is his blazing heart." },
+      { flag: "🌺", who: "POLYNESIA", saw: "Hōkūleʻa, Star of Joy", text: "Arcturus passes directly overhead at the latitude of Hawaiʻi — Polynesian navigators steered straight for it to find the islands across open ocean." },
+    ],
+  },
+  "Auriga": {
+    tagline: "A bright pentagon high overhead in winter, led by the golden star Capella — 'the little she-goat'.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Charioteer", text: "A charioteer cradling a mother goat and her kids against his shoulder — the goat marked by Capella, the sixth-brightest star in the sky." },
+      { flag: "🐐", who: "MESOPOTAMIA", saw: "The Chariot", text: "Babylonian stargazers saw a curved chariot or a shepherd's crook here, thousands of years ago." },
+    ],
+  },
+  "Lyra": {
+    tagline: "A small harp beside brilliant Vega — which, in 12,000 years, will take Polaris's place as the North Star.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Lyre of Orpheus", text: "The magical harp whose music charmed rivers, trees and even the god of the underworld — set in the sky in memory of the greatest musician of myth." },
+      { flag: "🦅", who: "ARABIA", saw: "The Swooping Eagle", text: "To early Arab astronomers Vega was al-Nasr al-Wāqiʿ, 'the swooping eagle' — wings folded as it dives." },
+    ],
+  },
+  "Aquila": {
+    tagline: "An eagle flying up the Milky Way, its eye the bright star Altair, flanked by two fainter stars like outstretched wings.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Eagle of Zeus", text: "The thunderbird that carried Zeus's lightning bolts and bore the youth Ganymede up to Olympus. 'Altair' is Arabic for 'the flying eagle'." },
+      { flag: "🎋", who: "CHINA", saw: "The Cowherd", text: "Altair is Niulang the cowherd, gazing across the Milky Way river at Vega, his weaver-girl love — reunited just once a year on Qīxī." },
+    ],
+  },
+  "Andromeda": {
+    tagline: "A chain of stars trailing off the Great Square of Pegasus — and home to the faint smudge of the Andromeda Galaxy, the furthest thing your eyes can see.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Chained Princess", text: "Daughter of vain Cassiopeia, chained to a rock as a sacrifice to a sea monster — and rescued at the last moment by the hero Perseus." },
+      { flag: "🌌", who: "MODERN", saw: "Our sister galaxy", text: "The blur beside her hip is the Andromeda Galaxy — a trillion suns, 2.5 million light-years away, and on a collision course with the Milky Way." },
+    ],
+  },
+  "Perseus": {
+    tagline: "The hero of the sky, holding the severed head of Medusa — marked by Algol, the 'Demon Star', which visibly winks as it dims every few days.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Hero", text: "Perseus slew the snake-haired Gorgon Medusa and rescued Andromeda from the sea monster — one of myth's great rescues, playing out across three neighbouring constellations." },
+      { flag: "👁️", who: "ARABIA", saw: "Algol, the Ghoul", text: "The star Algol — 'the ghoul' — dims and brightens every 2.9 days as a companion star eclipses it. Ancient skywatchers found its winking deeply unsettling." },
+    ],
+  },
+  "Ursa Minor": {
+    tagline: "The Little Dipper — a faint dipper of stars ending in Polaris, the North Star, the one point in the sky that never moves.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Little Bear", text: "The smaller bear circling the pole, with Polaris at its tail-tip. The Greeks credited the Phoenicians with steering by it." },
+      { flag: "🧭", who: "NAVIGATORS WORLDWIDE", saw: "The North Star", text: "For centuries Polaris was the one fixed point sailors could always find north by — because Earth's axis points almost exactly at it." },
+    ],
+  },
+  "Centaurus": {
+    tagline: "A great southern centaur whose two bright 'pointer' stars aim at the Southern Cross — and whose Alpha star is the nearest star system to the Sun.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Centaur", text: "Usually wise Chiron, the centaur who tutored heroes like Achilles and Jason — half man, half horse, immortalised among the stars." },
+      { flag: "🌟", who: "MODERN", saw: "Our nearest neighbours", text: "Alpha Centauri is the closest star system to us, just 4.3 light-years away — and its faint companion Proxima is the very nearest star of all." },
+    ],
+  },
+  "Virgo": {
+    tagline: "The second-largest constellation of all, sprawling along the ecliptic — its one bright star, Spica, an 'ear of wheat' in the maiden's hand.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Maiden", text: "Often Demeter, goddess of the harvest, or her daughter Persephone — when she withdraws to the underworld each year, the world falls into winter." },
+      { flag: "🌾", who: "BABYLON", saw: "The Furrow", text: "A grain goddess holding the barley-ear Spica — tying these stars to the harvest for more than 3,000 years." },
     ],
   },
 };
@@ -2809,7 +2918,9 @@ const SKY_PANEL = {
 const DEEPSKY = [
   ["Pleiades", 3.790, 24.117, "cluster"], ["Orion Nebula", 5.588, -5.391, "nebula"],
   ["Andromeda Gal.", 0.712, 41.269, "galaxy"], ["Beehive", 8.670, 19.667, "cluster"],
-  ["Hyades", 4.470, 15.870, "cluster"],
+  ["Hyades", 4.470, 15.870, "cluster"], ["Double Cluster", 2.333, 57.140, "cluster"],
+  ["Ring Nebula", 18.893, 33.029, "nebula"], ["Lagoon Nebula", 18.060, -24.383, "nebula"],
+  ["Omega Centauri", 13.446, -47.479, "cluster"],
 ];
 const PLANET_COL = { Mercury: "#b9b0a0", Venus: "#fff2c8", Mars: "#ff7a4a", Jupiter: "#e8d3a8", Saturn: "#e6c67a" };
 // Major annual meteor showers: [name, peakMonth(1-12), peakDay, radiant RA h, Dec°, ZHR, parent]
