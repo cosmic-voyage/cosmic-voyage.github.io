@@ -365,6 +365,32 @@
     font-size: 13px; font-weight: 600; letter-spacing: .04em; cursor: pointer; font-family: inherit;
   }
   #sky-fullbtn:hover { border-color: var(--accent); color: var(--accent); }
+  #sky-sharebtn {
+    width: 100%; margin-top: 8px; padding: 11px; text-align: center;
+    background: rgba(255,233,168,.1);
+    border: 1px solid var(--line); border-radius: 10px; color: #ffe9a8;
+    font-size: 13px; font-weight: 600; letter-spacing: .04em; cursor: pointer; font-family: inherit;
+  }
+  #sky-sharebtn:hover { border-color: #ffe9a8; }
+  .otd-row { display: flex; gap: 12px; align-items: flex-start; }
+  .otd-row + .otd-row { margin-top: 13px; }
+  .otd-year {
+    flex-shrink: 0; font-weight: 800; font-size: 12.5px; color: #ffe9a8;
+    border: 1px solid rgba(255,233,168,.38); background: rgba(255,233,168,.08);
+    border-radius: 999px; padding: 3px 11px; letter-spacing: .03em; margin-top: 1px;
+  }
+  .otd-text { font-size: 14px; line-height: 1.62; color: #d5e2f7; }
+  .otd-text b { color: #fff; }
+  .otd-none { font-size: 13.5px; color: var(--dim); line-height: 1.6; margin-bottom: 13px; }
+  #p-sound { margin: 6px 0 4px; }
+  .soundbtn {
+    width: 100%; margin: 0 0 8px; padding: 13px; border-radius: 12px;
+    border: 1px solid var(--line); background: linear-gradient(135deg, rgba(174,243,255,.13), rgba(122,162,255,.13));
+    color: #d7f4ff; font-weight: 700; font-size: 14px; letter-spacing: .02em;
+    cursor: pointer; font-family: inherit;
+  }
+  .soundbtn.playing { border-color: #aef3ff; color: #aef3ff; background: rgba(174,243,255,.18); }
+  .snote { font-size: 12px; color: var(--dim); line-height: 1.55; }
 
   /* ---------- Immersive Sky View (point-at-the-sky) ---------- */
   #skyview { position: fixed; inset: 0; z-index: 35; display: none; background: #04010e; touch-action: none; overflow: hidden; }
@@ -622,6 +648,7 @@
         </div>
         <div id="sky-time-label" style="display:none"></div>
         <button id="sky-fullbtn">🔭 Point at the sky (fullscreen)</button>
+        <button id="sky-sharebtn">📤 Share tonight's sky</button>
         <div class="tnote">You're looking straight up: the centre is directly overhead, the edge is your horizon, and N·E·S·W are the compass points. Planets, the Sun and Moon are labelled; faint dots are the brightest stars. Milky Way imagery: ESO/S. Brunier (CC BY 4.0).</div>
       </div>
     </div>
@@ -657,6 +684,11 @@
     <div class="tsec">
       <h3>✨ This season's highlight</h3>
       <div class="tcard" id="season-card"></div>
+    </div>
+
+    <div class="tsec">
+      <h3>📅 On this day in space history</h3>
+      <div class="tcard" id="onthisday-card"></div>
     </div>
   </div>
 </aside>
@@ -739,6 +771,7 @@
     <canvas id="p-pattern" style="display:none"></canvas>
     <div id="p-imgwrap"><img id="p-img" alt=""><div class="credit" id="p-credit"></div></div>
     <div class="stats" id="p-stats"></div>
+    <div id="p-sound" style="display:none"></div>
     <div id="p-weight"></div>
     <h3 id="p-facts-h">✦ Fun facts</h3>
     <div id="p-facts"></div>
@@ -1618,6 +1651,7 @@ addEventListener("keydown", (e) => {
 const panel = document.getElementById("panel");
 function openPanel(o, btn) {
   dismissHint();
+  cosmosStop(); // stop any cosmic sound from a previous panel
   // restore the standard object layout (the culture panel hides these)
   document.getElementById("p-pattern").style.display = "none";
   document.getElementById("p-cultures").style.display = "none";
@@ -1655,6 +1689,14 @@ function openPanel(o, btn) {
     f => `<div class="fact"><span class="star">✦</span><span>${f}</span></div>`
   ).join("");
   renderWeight(o.name);
+  const sfx = document.getElementById("p-sound"); // "hear it" — cosmic sound, if this object has one
+  if (COSMOS_SOUND[o.name]) {
+    sfx.style.display = "block";
+    sfx.innerHTML = `<button class="soundbtn" data-obj="${o.name}"></button><div class="snote">${COSMOS_NOTE[o.name]}</div>`;
+    const b = sfx.querySelector(".soundbtn");
+    b.onclick = e => { e.stopPropagation(); playCosmos(o.name); };
+    updateSoundBtn();
+  } else sfx.style.display = "none";
   document.getElementById("panel-scroll").scrollTop = 0;
   panel.classList.add("open");
   if (!explored.has(o.name)) {
@@ -1668,7 +1710,7 @@ function openPanel(o, btn) {
     else if (explored.size === Math.ceil(TOTAL/2)) showToast("🔭 Halfway across the cosmos — keep going!");
   }
 }
-function closePanel() { panel.classList.remove("open"); }
+function closePanel() { cosmosStop(); panel.classList.remove("open"); }
 
 /* ============================================================
    WEIGHT ON OTHER WORLDS — enter your weight once; every body with
@@ -2356,6 +2398,8 @@ function drawPattern(cname) {
 function openConstellation(name) {
   const lore = CONSTELLATION_LORE[name]; if (!lore) return false;
   dismissHint();
+  cosmosStop();
+  document.getElementById("p-sound").style.display = "none";
   document.getElementById("p-kind").textContent = "CONSTELLATION · seen around the world";
   document.getElementById("p-name").textContent = name;
   document.getElementById("p-tagline").textContent = lore.tagline;
@@ -2561,9 +2605,11 @@ function skyColors(sunAlt) {
   const glow = Math.max(0, Math.min(1, (sunAlt + 13) / 13)); // strongest just after sunset
   return { top, bot, glow, day: false };
 }
-function drawSkyMap() {
-  const c = document.getElementById("sky-canvas"); if (!c) return;
-  const x = c.getContext("2d"), W = c.width, cx = W / 2, cy = W / 2, Rmax = W / 2 - 16;
+function drawSkyMap(target, scale) {
+  const c = target || document.getElementById("sky-canvas"); if (!c) return;
+  const k = scale || 1; // render scale: 1 = live 360px canvas, >1 = crisp high-res (share card)
+  const x = c.getContext("2d"), W = 360, cx = W / 2, cy = W / 2, Rmax = W / 2 - 16;
+  x.setTransform(k, 0, 0, k, 0, 0); // draw in logical 360-space; the transform scales all sizes crisply
   const jd = skyJd(), lat = skyLoc.lat, lon = skyLoc.lon;
   const sun = bodyAltAz("Sun", jd, lat, lon), day = sun.alt > -6;
   const sky = skyColors(sun.alt);
@@ -2599,7 +2645,7 @@ function drawSkyMap() {
   drawMilkyWay(x, (ra, dec) => {
     const h = eqToHoriz(ra, dec, jd, lat, lon);
     return h.alt < -25 ? null : projSky(cx, cy, Rmax, h.alt, h.az);
-  }, day, 1);
+  }, day, k); // k = render scale, so the warped band lands at the right resolution
   x.restore();
   // constellation lines (drawn under the stars)
   x.strokeStyle = day ? "rgba(125,160,220,.1)" : "rgba(120,175,255,.2)"; x.lineWidth = 1;
@@ -3098,6 +3144,7 @@ function svTap(sx, sy) {
   });
 }
 document.getElementById("sky-fullbtn").addEventListener("click", svEnterFromTonight);
+document.getElementById("sky-sharebtn").addEventListener("click", shareSky);
 document.getElementById("sv-exit").addEventListener("click", svExit);
 document.getElementById("sv-point").addEventListener("click", svTogglePoint);
 
@@ -3241,6 +3288,67 @@ function renderHighlights() {
     const o = allObjects.find(a => a.name === el.dataset.obj); if (o) openPanel(o, o._el);
   }));
 }
+/* ============================================================
+   SHARE TONIGHT'S SKY — compose a poster-style card (dome + caption +
+   branding) and hand it to the phone's share sheet (download fallback).
+   ============================================================ */
+function stripTags(s) { return s.replace(/<[^>]+>/g, ""); }
+function wrapText(x, text, cx, y, maxW, lh) {
+  const words = text.split(" "); let line = "", yy = y;
+  for (const w of words) {
+    const test = line ? line + " " + w : w;
+    if (x.measureText(test).width > maxW && line) { x.fillText(line, cx, yy); line = w; yy += lh; }
+    else line = test;
+  }
+  if (line) x.fillText(line, cx, yy);
+  return yy;
+}
+function buildShareCard() {
+  const W = 1080, H = 1350, cvs = document.createElement("canvas");
+  cvs.width = W; cvs.height = H;
+  const x = cvs.getContext("2d");
+  const g = x.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, "#0b1436"); g.addColorStop(.5, "#070a1e"); g.addColorStop(1, "#04060f");
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+  // faint starfield texture (seeded so it's stable)
+  let seed = 987654321; const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  for (let i = 0; i < 240; i++) { const sx = rnd() * W, sy = rnd() * H, r = rnd() * 1.4 + .3; x.globalAlpha = rnd() * .5 + .12; x.fillStyle = "#cdd8ff"; x.beginPath(); x.arc(sx, sy, r, 0, 7); x.fill(); }
+  x.globalAlpha = 1;
+  x.textAlign = "center";
+  x.fillStyle = "#9db8ff"; x.font = "600 26px sans-serif"; x.fillText("✦   C O S M I C   V O Y A G E", W / 2, 90);
+  x.fillStyle = "#fff"; x.font = "800 76px sans-serif"; x.fillText("Tonight's Sky", W / 2, 172);
+  const dstr = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  x.fillStyle = "#c9d6ef"; x.font = "400 31px sans-serif"; x.fillText("📍 " + skyLoc.name + "   ·   " + dstr, W / 2, 230);
+  // the live dome, rendered crisp at high resolution
+  const DS = 760, dome = document.createElement("canvas"); dome.width = DS; dome.height = DS;
+  drawSkyMap(dome, DS / 360);
+  const dy = 280; x.drawImage(dome, (W - DS) / 2, dy);
+  x.strokeStyle = "rgba(125,211,252,.28)"; x.lineWidth = 2; x.beginPath(); x.arc(W / 2, dy + DS / 2, DS / 2 - 34, 0, 7); x.stroke();
+  // headline event as the caption
+  const hs = computeHighlights().map(stripTags);
+  const cap = hs[0] || "A clear night to just look up — find the Milky Way core low in the south.";
+  x.fillStyle = "#ffe9a8"; x.font = "700 35px sans-serif";
+  wrapText(x, cap, W / 2, dy + DS + 74, W - 150, 46);
+  x.fillStyle = "#8fa2c8"; x.font = "500 27px sans-serif";
+  x.fillText("Explore the universe →  cosmic-voyage.github.io", W / 2, H - 66);
+  return cvs;
+}
+async function shareSky() {
+  let card; try { card = buildShareCard(); } catch (e) { showToast("Couldn't build the card 😕"); return; }
+  card.toBlob(async blob => {
+    if (!blob) { showToast("Couldn't build the card 😕"); return; }
+    const file = new File([blob], "tonights-sky.png", { type: "image/png" });
+    const data = { files: [file], title: "Tonight's Sky", text: `Tonight's sky over ${skyLoc.name} 🌌 cosmic-voyage.github.io` };
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try { await navigator.share(data); return; } catch (e) { if (e && e.name === "AbortError") return; }
+    }
+    const url = URL.createObjectURL(blob); // fallback: download (desktop / unsupported)
+    const a = document.createElement("a"); a.href = url; a.download = "tonights-sky.png";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    showToast("📥 Saved your sky card — share it anywhere!");
+  }, "image/png");
+}
 const SEASONS = [ // by month index; northern-sky flavoured, with a nod south
   { m: [11, 0, 1], obj: "Orion the Hunter", text: "Winter's showpiece: <b>Orion</b> stands high in the evening — his three-star Belt points down-left to Sirius, the brightest star in the sky." },
   { m: [2, 3, 4], obj: "The Big Dipper", text: "Spring evenings put <b>the Big Dipper</b> almost overhead. Follow the two stars at the end of its bowl to find Polaris, the North Star." },
@@ -3262,6 +3370,77 @@ function renderSeason() {
     else openPanel(o, o._el);
   });
 }
+/* ============================================================
+   ON THIS DAY IN SPACE HISTORY — a rotating anniversary tied to the
+   real date. Exact match if one exists, else the next one coming up.
+   ============================================================ */
+const SPACE_HISTORY = [ // [month, day, year, html]
+  [1, 4, 2004, "NASA's <b>Spirit</b> rover bounced down on Mars for a mission planned to last 90 days — it kept going for over six years."],
+  [1, 19, 2006, "<b>New Horizons</b> launched toward Pluto, the fastest spacecraft ever to leave Earth."],
+  [1, 31, 1958, "<b>Explorer 1</b>, America's first satellite, reached orbit and discovered the Van Allen radiation belts."],
+  [2, 14, 1990, "<b>Voyager 1</b> looked back and took the 'Pale Blue Dot' — Earth as a single pixel from 6 billion km away."],
+  [2, 18, 1930, "Clyde Tombaugh discovered <b>Pluto</b> from a small Arizona observatory, aged just 24."],
+  [2, 18, 2021, "NASA's <b>Perseverance</b> rover landed in Jezero Crater to hunt for signs of ancient life on Mars."],
+  [2, 20, 1962, "<b>John Glenn</b> became the first American to orbit the Earth, circling the planet three times."],
+  [3, 2, 1972, "<b>Pioneer 10</b> launched — the first craft to cross the asteroid belt and fly past Jupiter."],
+  [3, 13, 1781, "William Herschel spotted <b>Uranus</b>, the first planet ever found with a telescope — doubling the size of the known Solar System."],
+  [3, 18, 1965, "<b>Alexei Leonov</b> floated out of his capsule for the first-ever spacewalk, drifting free for 12 minutes."],
+  [4, 12, 1961, "<b>Yuri Gagarin</b> became the first human in space, orbiting the Earth once in 108 minutes."],
+  [4, 19, 2021, "NASA's <b>Ingenuity</b> made the first powered flight on another world, hovering above the Martian surface."],
+  [4, 24, 1990, "The <b>Hubble Space Telescope</b> launched aboard Shuttle Discovery — it's been rewriting astronomy ever since."],
+  [5, 5, 1961, "<b>Alan Shepard</b> became the first American in space on a 15-minute suborbital flight."],
+  [5, 25, 1961, "President Kennedy challenged America to land a man on the <b>Moon</b> before the decade was out."],
+  [5, 30, 2020, "<b>Crew Dragon</b> reached orbit — the first crewed launch from US soil in nearly a decade, and the first ever by a private company."],
+  [6, 16, 1963, "<b>Valentina Tereshkova</b> became the first woman in space, spending three days in orbit."],
+  [6, 18, 1983, "<b>Sally Ride</b> became the first American woman in space, aboard Space Shuttle Challenger."],
+  [7, 1, 2004, "<b>Cassini</b> slipped into orbit around Saturn, beginning 13 years of discovery among its rings and moons."],
+  [7, 4, 1997, "<b>Mars Pathfinder</b> landed and rolled out Sojourner — the first rover to explore another planet."],
+  [7, 11, 2022, "NASA unveiled the <b>first James Webb Space Telescope image</b> — thousands of galaxies in a patch of sky the size of a grain of sand held at arm's length."],
+  [7, 14, 2015, "<b>New Horizons</b> flew past Pluto, revealing its now-famous heart-shaped plain of nitrogen ice."],
+  [7, 16, 1969, "<b>Apollo 11</b> lifted off for the Moon atop a Saturn V — the most powerful rocket then ever flown."],
+  [7, 17, 1975, "American and Soviet crews shook hands in orbit as <b>Apollo and Soyuz</b> docked — a thaw in the Space Race."],
+  [7, 20, 1969, "<b>Apollo 11</b> landed on the Moon and Neil Armstrong took 'one small step', watched live by 600 million people."],
+  [7, 23, 1999, "The <b>Chandra X-ray Observatory</b> launched, giving us our sharpest view of the Universe's hottest, most violent places."],
+  [8, 5, 2012, "NASA's <b>Curiosity</b> rover survived its 'seven minutes of terror' and landed in Gale Crater on Mars."],
+  [8, 12, 2018, "The <b>Parker Solar Probe</b> launched to 'touch' the Sun, flying through its scorching outer atmosphere."],
+  [8, 20, 1977, "<b>Voyager 2</b> launched — it's still going, now beyond the edge of the Solar System."],
+  [8, 25, 1989, "<b>Voyager 2</b> swept past Neptune, our only close-up of the outermost planet, then headed for the stars."],
+  [9, 1, 1979, "<b>Pioneer 11</b> made the first-ever flyby of Saturn, discovering a new ring and moon."],
+  [9, 5, 1977, "<b>Voyager 1</b> launched — today it's the most distant human-made object, over 24 billion km away."],
+  [9, 15, 2017, "<b>Cassini</b> ended its mission with a deliberate plunge into Saturn, to protect its moons from contamination."],
+  [9, 26, 2022, "NASA's <b>DART</b> spacecraft deliberately slammed into an asteroid — humanity's first test of planetary defence."],
+  [10, 4, 1957, "The Soviet Union launched <b>Sputnik 1</b>, the first artificial satellite — and the Space Age began."],
+  [10, 6, 1995, "Astronomers announced <b>51 Pegasi b</b>, the first planet found orbiting a Sun-like star. Thousands more have followed."],
+  [10, 15, 1997, "<b>Cassini–Huygens</b> launched on its seven-year voyage to Saturn."],
+  [10, 22, 1975, "The Soviet <b>Venera 9</b> sent back the first-ever photograph from the surface of another planet — Venus."],
+  [11, 9, 1967, "The mighty <b>Saturn V</b> rocket flew for the first time, uncrewed, on Apollo 4."],
+  [11, 12, 2014, "The <b>Philae</b> lander touched down on a comet for the first time in history, after Rosetta's 10-year chase."],
+  [11, 13, 1971, "<b>Mariner 9</b> became the first spacecraft to orbit another planet, mapping Mars through a global dust storm."],
+  [11, 16, 2022, "NASA's <b>Artemis 1</b> launched, sending an uncrewed Orion capsule around the Moon."],
+  [11, 20, 1998, "The first piece of the <b>International Space Station</b>, the Zarya module, reached orbit."],
+  [12, 14, 1972, "<b>Gene Cernan</b> climbed back into the lunar module — the last person, so far, to walk on the Moon."],
+  [12, 21, 1968, "<b>Apollo 8</b> launched, carrying the first humans ever to leave Earth and journey to the Moon."],
+  [12, 24, 1968, "From lunar orbit, the Apollo 8 crew photographed <b>'Earthrise'</b> — an image that helped spark the environmental movement."],
+  [12, 25, 2021, "The <b>James Webb Space Telescope</b> launched on Christmas morning, folded like origami inside its rocket."],
+];
+function renderOnThisDay() {
+  const card = document.getElementById("onthisday-card"); if (!card) return;
+  const now = new Date(), m = now.getMonth() + 1, d = now.getDate();
+  const fmtD = (mm, dd) => new Date(2000, mm - 1, dd).toLocaleDateString("en-US", { month: "long", day: "numeric" });
+  const exact = SPACE_HISTORY.filter(e => e[0] === m && e[1] === d);
+  if (exact.length) {
+    card.innerHTML = exact.map(e =>
+      `<div class="otd-row"><span class="otd-year">${e[2]}</span><span class="otd-text">${e[3]}</span></div>`).join("");
+    return;
+  }
+  const gap = e => { let dt = new Date(now.getFullYear(), e[0] - 1, e[1]); if (dt <= now) dt = new Date(now.getFullYear() + 1, e[0] - 1, e[1]); return (dt - now) / 86400000; };
+  let next = SPACE_HISTORY[0], best = 1e9;
+  for (const e of SPACE_HISTORY) { const g = gap(e); if (g < best) { best = g; next = e; } }
+  const days = Math.max(1, Math.ceil(best));
+  card.innerHTML =
+    `<div class="otd-none">Nothing headline-making happened on this exact date — a fine day to make your own history and just look up. 🔭</div>` +
+    `<div class="otd-row"><span class="otd-year">SOON</span><span class="otd-text"><b>${fmtD(next[0], next[1])}</b> · in ${days} day${days > 1 ? "s" : ""}: back in ${next[2]}, ${next[3]}</span></div>`;
+}
 function openTonight(keepTime = false) {
   document.getElementById("tonight-date").textContent =
     "Live · " + new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
@@ -3279,6 +3458,7 @@ function openTonight(keepTime = false) {
   renderTimes();
   renderHighlights();
   renderSeason();
+  renderOnThisDay();
   issTrail = [];
   drawIssMap(null, null);
   pollIss();
@@ -3656,6 +3836,149 @@ function warpWhoosh() {
   g.gain.linearRampToValueAtTime(0, t + 1.6);
   src.connect(bp); bp.connect(g); g.connect(music.master);
   src.start(t);
+}
+
+/* ============================================================
+   SOUNDS OF THE COSMOS — each object gets a signature sound, synthesised
+   live (no audio files). Honest label: these are impressions in sound,
+   some inspired by real NASA data sonifications. Play regardless of the
+   ambient-music mute, since it's a deliberate "Hear it" tap.
+   ============================================================ */
+const cosmos = { ctx: null, out: null, oscs: [], timer: null, endTimer: null, playing: null };
+function getSfxCtx() {
+  if (music.ctx) return music.ctx;
+  if (!cosmos.ctx) cosmos.ctx = new (window.AudioContext || window.webkitAudioContext)();
+  return cosmos.ctx;
+}
+function cosmosStop() {
+  const c = cosmos, ctx = c.ctx;
+  if (c.timer) { clearInterval(c.timer); c.timer = null; }
+  if (c.endTimer) { clearTimeout(c.endTimer); c.endTimer = null; }
+  if (ctx && c.out) {
+    const t = ctx.currentTime;
+    try { c.out.gain.cancelScheduledValues(t); c.out.gain.setValueAtTime(c.out.gain.value, t); c.out.gain.linearRampToValueAtTime(0, t + 0.3); } catch (e) {}
+    for (const o of c.oscs) { try { o.stop(t + 0.35); } catch (e) {} }
+  }
+  c.oscs = []; c.out = null; c.playing = null;
+  updateSoundBtn();
+}
+function noiseSrc(ctx, loop) {
+  const len = Math.floor(ctx.sampleRate * 2);
+  const buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  const s = ctx.createBufferSource(); s.buffer = buf; s.loop = !!loop;
+  cosmos.oscs.push(s); return s;
+}
+function blip(ctx, out, t, freq) { // a short lighthouse "ping"
+  const o = ctx.createOscillator(); o.type = "sine"; o.frequency.value = freq;
+  const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(0.5, t + 0.006);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + 0.17);
+  o.connect(g); g.connect(out); o.start(t); o.stop(t + 0.22);
+}
+function autoEnd(dur) { cosmos.endTimer = setTimeout(cosmosStop, dur * 1000); }
+const COSMOS_LABEL = {
+  "The Sun": "the Sun's hum", "A Pulsar": "the pulsar's beat", "Sagittarius A*": "the black hole",
+  "Crab Nebula": "the Crab pulsar", "Betelgeuse": "the red giant", "Orion Nebula": "the nebula",
+};
+const COSMOS_NOTE = {
+  "The Sun": "The Sun rings like a vast bell — sound waves trapped inside it, which scientists use to map its hidden interior. A synthesised impression.",
+  "A Pulsar": "A pulsar sweeps a beam of radio waves past us like a lighthouse; this steady beat is one spin. A synthesised impression.",
+  "Sagittarius A*": "NASA turned real pressure waves rippling out from a black hole into sound — the deepest note in the cosmos. An impression of that eerie song.",
+  "Crab Nebula": "At its heart, a city-sized neutron star whips around 30 times every second — fast enough to blur into a buzz. A synthesised impression.",
+  "Betelgeuse": "A bloated, dying red giant, its surface boiling and heaving as it nears the end. An imagined groan in sound.",
+  "Orion Nebula": "A vast stellar nursery where new stars are being born in glowing gas and dust. An ambient impression.",
+};
+const COSMOS_SOUND = {
+  "The Sun": (ctx, out, t) => {
+    for (const f of [43.65, 65.41, 87.31, 130.81]) {
+      const o = ctx.createOscillator(); o.type = "sine"; o.frequency.value = f; o.detune.value = Math.random() * 8 - 4;
+      const g = ctx.createGain(); g.gain.value = 0; o.connect(g); g.connect(out); o.start(t);
+      const v = 0.16 / Math.sqrt(f / 43.65);
+      g.gain.linearRampToValueAtTime(v, t + 3); g.gain.setValueAtTime(v, t + 5); g.gain.linearRampToValueAtTime(0, t + 8);
+      const lfo = ctx.createOscillator(); lfo.frequency.value = 0.06 + Math.random() * 0.12;
+      const lg = ctx.createGain(); lg.gain.value = v * 0.4; lfo.connect(lg); lg.connect(g.gain); lfo.start(t);
+      cosmos.oscs.push(o, lfo);
+    }
+    const nb = noiseSrc(ctx, true), nf = ctx.createBiquadFilter(); nf.type = "lowpass"; nf.frequency.value = 170;
+    const ng = ctx.createGain(); ng.gain.value = 0; nb.connect(nf); nf.connect(ng); ng.connect(out); nb.start(t);
+    ng.gain.linearRampToValueAtTime(0.08, t + 3); ng.gain.linearRampToValueAtTime(0, t + 8);
+    autoEnd(8.4);
+  },
+  "A Pulsar": (ctx, out, t) => {
+    out.gain.value = 0.9;
+    const fire = () => blip(ctx, out, ctx.currentTime + 0.02, 300);
+    fire(); cosmos.timer = setInterval(fire, 700);
+    autoEnd(8);
+  },
+  "Crab Nebula": (ctx, out, t) => {
+    const car = ctx.createOscillator(); car.type = "sawtooth"; car.frequency.value = 140;
+    const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 900;
+    const g = ctx.createGain(); g.gain.value = 0; car.connect(lp); lp.connect(g); g.connect(out); car.start(t);
+    const lfo = ctx.createOscillator(); lfo.type = "square"; lfo.frequency.value = 30; // ~30 spins/sec
+    const lg = ctx.createGain(); lg.gain.value = 0.13;
+    const bias = ctx.createConstantSource(); bias.offset.value = 0.13; bias.start(t);
+    lfo.connect(lg); lg.connect(g.gain); bias.connect(g.gain); lfo.start(t);
+    out.gain.setValueAtTime(0, t); out.gain.linearRampToValueAtTime(1, t + 1.5); out.gain.setValueAtTime(1, t + 5); out.gain.linearRampToValueAtTime(0, t + 7);
+    cosmos.oscs.push(car, lfo, bias);
+    autoEnd(7.2);
+  },
+  "Sagittarius A*": (ctx, out, t) => {
+    for (const f of [29.14, 43.65, 58.27]) { // a very low, brooding B-flat-ish stack
+      const o = ctx.createOscillator(); o.type = "sine"; o.frequency.value = f; o.detune.value = Math.random() * 6 - 3;
+      const g = ctx.createGain(); g.gain.value = 0; o.connect(g); g.connect(out); o.start(t);
+      const v = 0.2 / Math.sqrt(f / 29.14);
+      g.gain.linearRampToValueAtTime(v, t + 4); g.gain.linearRampToValueAtTime(0, t + 9);
+      const lfo = ctx.createOscillator(); lfo.frequency.value = 0.05 + Math.random() * 0.06;
+      const lg = ctx.createGain(); lg.gain.value = v * 0.5; lfo.connect(lg); lg.connect(g.gain); lfo.start(t);
+      cosmos.oscs.push(o, lfo);
+    }
+    const o2 = ctx.createOscillator(); o2.type = "sine"; o2.frequency.value = 233;
+    const g2 = ctx.createGain(); g2.gain.value = 0; o2.connect(g2); g2.connect(out); o2.start(t);
+    g2.gain.linearRampToValueAtTime(0.02, t + 5); g2.gain.linearRampToValueAtTime(0, t + 9);
+    cosmos.oscs.push(o2);
+    autoEnd(9.3);
+  },
+  "Betelgeuse": (ctx, out, t) => {
+    const o = ctx.createOscillator(); o.type = "sawtooth"; o.frequency.value = 70;
+    const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 350; lp.Q.value = 3;
+    const g = ctx.createGain(); g.gain.value = 0; o.connect(lp); lp.connect(g); g.connect(out); o.start(t);
+    g.gain.linearRampToValueAtTime(0.14, t + 2.5); g.gain.linearRampToValueAtTime(0, t + 8);
+    const wob = ctx.createOscillator(); wob.frequency.value = 0.6; const wg = ctx.createGain(); wg.gain.value = 8; wob.connect(wg); wg.connect(o.frequency); wob.start(t);
+    const wob2 = ctx.createOscillator(); wob2.frequency.value = 0.17; const wg2 = ctx.createGain(); wg2.gain.value = 14; wob2.connect(wg2); wg2.connect(o.frequency); wob2.start(t);
+    const fl = ctx.createOscillator(); fl.frequency.value = 0.1; const flg = ctx.createGain(); flg.gain.value = 150; fl.connect(flg); flg.connect(lp.frequency); fl.start(t);
+    cosmos.oscs.push(o, wob, wob2, fl);
+    autoEnd(8.3);
+  },
+  "Orion Nebula": (ctx, out, t) => {
+    [261.63, 329.63, 392.00, 523.25].forEach((f, i) => {
+      const o = ctx.createOscillator(); o.type = "sine"; o.frequency.value = f; o.detune.value = Math.random() * 10 - 5;
+      const g = ctx.createGain(); g.gain.value = 0; o.connect(g); g.connect(out); o.start(t + i * 0.4);
+      g.gain.linearRampToValueAtTime(0.05, t + 2 + i * 0.4); g.gain.linearRampToValueAtTime(0, t + 8);
+      const lfo = ctx.createOscillator(); lfo.frequency.value = 0.2 + Math.random() * 0.3; const lg = ctx.createGain(); lg.gain.value = 0.03; lfo.connect(lg); lg.connect(g.gain); lfo.start(t + i * 0.4);
+      cosmos.oscs.push(o, lfo);
+    });
+    autoEnd(8.3);
+  },
+};
+function playCosmos(name) {
+  if (cosmos.playing === name) { cosmosStop(); return; }
+  cosmosStop();
+  const ctx = getSfxCtx(); if (ctx.state === "suspended") ctx.resume();
+  const out = ctx.createGain(); out.gain.value = 1;
+  const dry = ctx.createGain(); dry.gain.value = 0.85; out.connect(dry); dry.connect(ctx.destination);
+  const dl = ctx.createDelay(1); dl.delayTime.value = 0.28; // a little space
+  const fb = ctx.createGain(); fb.gain.value = 0.33; const wet = ctx.createGain(); wet.gain.value = 0.4;
+  out.connect(dl); dl.connect(fb); fb.connect(dl); dl.connect(wet); wet.connect(ctx.destination);
+  cosmos.ctx = ctx; cosmos.out = out; cosmos.oscs = []; cosmos.playing = name;
+  (COSMOS_SOUND[name] || (() => {}))(ctx, out, ctx.currentTime);
+  updateSoundBtn();
+}
+function updateSoundBtn() {
+  const b = document.querySelector("#p-sound .soundbtn"); if (!b) return;
+  const nm = b.dataset.obj, on = cosmos.playing === nm;
+  b.classList.toggle("playing", on);
+  b.textContent = on ? "◼ Stop" : "🔊 Hear " + (COSMOS_LABEL[nm] || "it");
 }
 
 // iOS/Android can suspend or interrupt audio (screen lock, calls, silent-mode toggles).
