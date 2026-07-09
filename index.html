@@ -523,7 +523,7 @@
         </div>
         <div id="sky-time-label" style="display:none"></div>
         <button id="sky-fullbtn">🔭 Point at the sky (fullscreen)</button>
-        <div class="tnote">You're looking straight up: the centre is directly overhead, the edge is your horizon, and N·E·S·W are the compass points. Planets, the Sun and Moon are labelled; faint dots are the brightest stars.</div>
+        <div class="tnote">You're looking straight up: the centre is directly overhead, the edge is your horizon, and N·E·S·W are the compass points. Planets, the Sun and Moon are labelled; faint dots are the brightest stars. Milky Way imagery: ESO/S. Brunier (CC BY 4.0).</div>
       </div>
     </div>
 
@@ -1992,73 +1992,84 @@ function galToEq(l, b) {
   return { ra: ra / 15, dec: dec * R2D };
 }
 const MW_CORE = galToEq(0, 0);
-// A textured Milky Way: layered irregular cloud blobs (warm near the core bulge),
-// grainy star-dust, and the Great Rift dark lane — all placed with deterministic
-// hash jitter so the band looks mottled but never flickers.
-function glowSpriteMW(color) {
-  const c = document.createElement("canvas"); c.width = c.height = 64;
-  const g = c.getContext("2d");
-  const rg = g.createRadialGradient(32, 32, 0, 32, 32, 32);
-  rg.addColorStop(0, color); rg.addColorStop(1, color.replace(",1)", ",0)"));
-  g.fillStyle = rg; g.fillRect(0, 0, 64, 64);
-  return c;
+/* The real Milky Way: ESO's 360° panorama by Serge Brunier (eso0932a, CC BY 4.0),
+   cropped to the ±25° galactic-latitude band (mw-band.jpg) and warped along the true
+   galactic equator in 3°-of-longitude segments. Drawn with 'screen' blending so the
+   dark background vanishes and only the glow adds to the sky — faint enough that
+   labels stay readable. */
+let mwTex = null, mwTexSmall = null, mwTexLoading = false;
+function loadMWTexture() {
+  if (mwTex || mwTexLoading) return;
+  mwTexLoading = true;
+  const img = new Image();
+  img.onload = () => {
+    const W = img.naturalWidth, H = img.naturalHeight;
+    const c = document.createElement("canvas"); c.width = W; c.height = H;
+    const g = c.getContext("2d");
+    g.drawImage(img, 0, 0);
+    // Only soften the extreme crop edge (outer ~7%); the photo itself already fades to
+    // dark sky, and keeping the rest fully opaque lets adjacent segments tile without
+    // the transparent gaps that caused radial seam lines.
+    const grad = g.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, "rgba(0,0,0,1)"); grad.addColorStop(0.07, "rgba(0,0,0,0)");
+    grad.addColorStop(0.93, "rgba(0,0,0,0)"); grad.addColorStop(1, "rgba(0,0,0,1)");
+    g.globalCompositeOperation = "destination-out";
+    g.fillStyle = grad; g.fillRect(0, 0, W, H);
+    mwTex = c;
+    // pre-downscaled copy for small canvases (the dome chart) — avoids moiré
+    const s = document.createElement("canvas");
+    s.width = 1000; s.height = Math.round(H * 1000 / W);
+    const sg = s.getContext("2d");
+    sg.imageSmoothingQuality = "high";
+    sg.drawImage(c, 0, 0, s.width, s.height);
+    mwTexSmall = s;
+  };
+  img.onerror = () => { mwTexLoading = false; }; // offline: sky simply has no band
+  img.src = "mw-band.jpg";
 }
-const mwCool = glowSpriteMW("rgba(190,205,255,1)");
-const mwWarm = glowSpriteMW("rgba(255,224,186,1)");
-const mwDark = glowSpriteMW("rgba(6,4,18,1)");
-const MW_BLOBS = [], MW_DARK = [], MW_DUST = [];
-{
-  const hash = n => { const s = Math.sin(n * 127.1) * 43758.5453; return s - Math.floor(s); };
-  for (let l = 0; l < 360; l += 4) {
-    const core = Math.exp(-Math.pow((((l + 180) % 360) - 180) / 48, 2)); // 1 at the core, 0 far away
-    const rows = 2 + Math.round(core * 3);
-    for (let k = 0; k < rows; k++) {
-      MW_BLOBS.push({
-        ...galToEq(l + hash(l * 3.1 + k * 5.7) * 4, (hash(l * 7.3 + k * 13.7) - 0.5) * (8 + core * 16)),
-        r: (46 + hash(l * 9.1 + k) * 55) * (0.75 + core * 0.7),
-        a: (0.028 + hash(l * 4.7 + k * 2.3) * 0.035) * (0.55 + core * 1.5),
-        warm: core > 0.4 && hash(l * 11.9 + k) < 0.65,
-      });
-    }
-    const nd = 1 + Math.round(core * 3 + hash(l * 6.1) * 1.5);
-    for (let k = 0; k < nd; k++) {
-      MW_DUST.push({
-        ...galToEq(l + hash(l * 23.3 + k * 7.7) * 4, (hash(l * 17.9 + k * 29.1) - 0.5) * (11 + core * 18)),
-        a: 0.15 + hash(l * 5.3 + k * 41.7) * 0.45,
-      });
-    }
-  }
-  // The Great Rift: the dark dust lane splitting the band from Cygnus toward the core
-  for (let l = -8; l < 62; l += 2) {
-    MW_DARK.push({
-      ...galToEq(l + hash(l * 2.7) * 2, 2.5 + (hash(l * 3.9) - 0.5) * 3.5),
-      r: 40 + hash(l * 8.3) * 45,
-      a: 0.10 + hash(l * 12.1) * 0.10,
-    });
-  }
+loadMWTexture();
+// Segment grid: texture column i ↔ galactic longitude, panorama centred on the core
+// (l=0 at x=W/2, longitude increasing to the LEFT — the sky-map convention).
+const MW_SEGS = 200, MW_LAT = 25;
+const MW_GRID = [];
+for (let i = 0; i <= MW_SEGS; i++) {
+  const l = norm360(180 - (i / MW_SEGS) * 360);
+  MW_GRID.push({ top: galToEq(l, MW_LAT), bot: galToEq(l, -MW_LAT) });
 }
-function drawMilkyWay(x, plot, scale, day) {
-  const dim = day ? 0.25 : 1;
-  for (const b of MW_BLOBS) {
-    const p = plot(b.ra, b.dec); if (!p) continue;
-    const rr = b.r * scale;
-    x.globalAlpha = b.a * dim;
-    x.drawImage(b.warm ? mwWarm : mwCool, p[0] - rr, p[1] - rr, rr * 2, rr * 2);
+let mwLayer = null;
+function drawMilkyWay(x, plot, day, dpr = 1) {
+  if (!mwTex) { loadMWTexture(); return; }
+  const tex = (x.canvas.width < 700 && mwTexSmall) ? mwTexSmall : mwTex;
+  const W = tex.width, H = tex.height, segW = W / MW_SEGS;
+  // Render the warped segments into an offscreen layer with normal compositing and a
+  // slight horizontal overlap (so segment edges overwrite instead of double-adding),
+  // then blend the finished layer onto the sky once. This kills the seam lines.
+  const cw = x.canvas.width, ch = x.canvas.height;
+  if (!mwLayer) mwLayer = document.createElement("canvas");
+  if (mwLayer.width !== cw || mwLayer.height !== ch) { mwLayer.width = cw; mwLayer.height = ch; }
+  const g = mwLayer.getContext("2d");
+  g.imageSmoothingQuality = "high";
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.clearRect(0, 0, cw, ch);
+  for (let i = 0; i < MW_SEGS; i++) {
+    const A = plot(MW_GRID[i].top.ra, MW_GRID[i].top.dec);
+    const B = plot(MW_GRID[i + 1].top.ra, MW_GRID[i + 1].top.dec);
+    const C = plot(MW_GRID[i].bot.ra, MW_GRID[i].bot.dec);
+    if (!A || !B || !C) continue;
+    if (Math.hypot(B[0] - A[0], B[1] - A[1]) > 900) continue; // degenerate edge-of-view segment
+    g.setTransform(dpr * (B[0] - A[0]) / segW, dpr * (B[1] - A[1]) / segW,
+                   dpr * (C[0] - A[0]) / H,     dpr * (C[1] - A[1]) / H,
+                   dpr * A[0], dpr * A[1]);
+    g.drawImage(tex, i * segW, 0, segW, H, 0, 0, segW + 2.5, H);
   }
-  for (const d of MW_DARK) {
-    const p = plot(d.ra, d.dec); if (!p) continue;
-    const rr = d.r * scale;
-    x.globalAlpha = d.a * dim;
-    x.drawImage(mwDark, p[0] - rr, p[1] - rr, rr * 2, rr * 2);
-  }
-  const dot = scale > 0.5 ? 1.5 : 1;
-  x.fillStyle = "#cdd8f5";
-  for (const s of MW_DUST) {
-    const p = plot(s.ra, s.dec); if (!p) continue;
-    x.globalAlpha = s.a * dim * 0.8;
-    x.fillRect(p[0], p[1], dot, dot);
-  }
+  const prevComp = x.globalCompositeOperation;
+  x.globalCompositeOperation = "screen";
+  x.globalAlpha = day ? 0.12 : 0.55;
+  x.setTransform(1, 0, 0, 1, 0, 0);
+  x.drawImage(mwLayer, 0, 0);
+  x.setTransform(dpr, 0, 0, dpr, 0, 0);
   x.globalAlpha = 1;
+  x.globalCompositeOperation = prevComp;
 }
 
 // Sky objects that link to a fact panel in the journey (tap to open)
@@ -2122,11 +2133,15 @@ function drawSkyMap() {
     const lx = cx - (Rmax + 9) * Math.sin(az * D2R), ly = cy - (Rmax + 9) * Math.cos(az * D2R);
     x.fillText(lab, lx, ly);
   }
-  // the Milky Way band (textured: clouds, core bulge, dust grain, Great Rift)
+  // the Milky Way band (real ESO panorama warped along the galactic equator);
+  // segments may dip below the horizon — the circular clip trims them at the rim
+  x.save();
+  x.beginPath(); x.arc(cx, cy, Rmax, 0, 7); x.clip();
   drawMilkyWay(x, (ra, dec) => {
     const h = eqToHoriz(ra, dec, jd, lat, lon);
-    return h.alt < 0 ? null : projSky(cx, cy, Rmax, h.alt, h.az);
-  }, 0.22, day);
+    return h.alt < -25 ? null : projSky(cx, cy, Rmax, h.alt, h.az);
+  }, day, 1);
+  x.restore();
   // constellation lines (drawn under the stars)
   x.strokeStyle = day ? "rgba(125,160,220,.1)" : "rgba(120,175,255,.2)"; x.lineWidth = 1;
   for (const [a, b] of CONST_LINES) {
@@ -2314,12 +2329,13 @@ function drawSV() {
     if (fwd <= 0.04) return null;
     return [cx + dot3(v, Rt) / fwd * f, cy - dot3(v, Up) / fwd * f, fwd];
   };
-  // the Milky Way band (textured; drawn before the ground so the horizon occludes it)
+  // the Milky Way band (real ESO panorama; drawn before the ground, which covers
+  // the below-horizon portion — so let segments continue well below the horizon)
   const jdv = skyJd();
   drawMilkyWay(x, (ra, dec) => {
     const hh = eqToHoriz(ra, dec, jdv, skyLoc.lat, skyLoc.lon);
-    return hh.alt < -4 ? null : project(hh.az, hh.alt);
-  }, 1, day);
+    return hh.alt < -30 ? null : project(hh.az, hh.alt);
+  }, day, dpr);
   // horizon + ground
   const horizon = [];
   for (let d = -140; d <= 140; d += 3) { const p = project(norm360(svAz + d), 0); if (p) horizon.push(p); }
@@ -2477,6 +2493,7 @@ function svExit() {
   window.removeEventListener("deviceorientation", svOrient, true);
   if (svRAF) cancelAnimationFrame(svRAF);
   svMode = "drag"; updatePointBtn();
+  openTonight(true); // return to Tonight's Sky, keeping any time-travel setting
 }
 function updatePointBtn() {
   const b = document.getElementById("sv-point");
@@ -2709,11 +2726,12 @@ function renderSeason() {
     else openPanel(o, o._el);
   });
 }
-function openTonight() {
+function openTonight(keepTime = false) {
   document.getElementById("tonight-date").textContent =
     "Live · " + new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
   initSkyControls();
-  resetSkyTime(); // each fresh open of Tonight starts at "now"
+  if (keepTime) updateSkyTimeUI(); // returning from the fullscreen sky: keep the chosen time
+  else resetSkyTime();             // fresh open from the menu: start at "now"
   drawSkyMap();
   skyTimer = setInterval(drawSkyMap, 15000);
   drawMoon();
