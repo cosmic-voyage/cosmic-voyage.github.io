@@ -4884,8 +4884,10 @@ function drawBirthZodiac(cst, signName, jd) {
 function revealBirth() {
   const v = document.getElementById("birth-date").value;
   if (!v) { showToast("Pick your birthday first 🎂"); return; }
-  const m = +v.split("-")[1], d = +v.split("-")[2];
-  birthJd = new Date(v + "T21:00:00").getTime() / 86400000 + 2440587.5; // 9 pm on that night, local
+  const by = +v.split("-")[0], m = +v.split("-")[1], d = +v.split("-")[2];
+  // 9pm LOCAL time at the chosen location (via its longitude) — independent of the device's timezone,
+  // so it's always a proper evening sky even if your location differs from your phone's clock.
+  birthJd = Date.UTC(by, m - 1, d, 21, 0, 0) / 86400000 + 2440587.5 - skyLoc.lon / 15 / 24;
   drawSkyMap(document.getElementById("birth-canvas"), 1, birthJd);
   const phase = moonPhaseName(birthJd), illum = Math.round(moonIllum(birthJd) * 100);
   const sign = starSign(m, d), constell = sunConstellation(sunEcliptic(birthJd).lon);
