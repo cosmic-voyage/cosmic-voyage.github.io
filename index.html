@@ -2556,6 +2556,20 @@ const STARS = [
   ["Sadalsuud",21.5259,-5.571,2.90,0],["Sadalmelik",22.0964,-0.320,2.94,0],["Skat",22.9109,-15.821,3.27,0],["Sadachbia",22.3611,-1.387,3.84,0],
   ["Alrescha",2.0339,2.764,3.82,0],["Alpherg",1.5249,15.346,3.62,0],["Gamma Psc",23.2860,3.282,3.70,0],["Omega Psc",23.9866,6.863,4.01,0],
   ["Sabik",17.1729,-15.725,2.43,0],["Cebalrai",17.7243,4.567,2.76,0],["Yed Prior",16.2393,-3.694,2.73,0],["Yed Post",16.3042,-4.692,3.22,0],["Zeta Oph",16.6191,-10.567,2.56,0],
+  // Cepheus, Cetus, Draco, Hercules, CrB, Delphinus, Corvus, Lepus, Argo Navis, PsA, Hydra (HYG coords)
+  ["Alderamin",21.3096,62.586,2.45,0],["Alfirk",21.4777,70.561,3.23,0],["Errai",23.6558,77.632,3.21,0],["Zeta Cep",22.1809,58.201,3.39,0],["Iota Cep",22.8280,66.200,3.50,0],
+  ["Menkar",3.0380,4.090,2.54,0],["Kaffaljidhma",2.7217,3.236,3.47,0],["Mira",2.3224,-2.978,3.50,0],["Baten Kaitos",1.8577,-10.335,3.74,0],["Eta Cet",1.1432,-10.182,3.46,0],
+  ["Eltanin",17.9434,51.489,2.24,0],["Rastaban",17.5072,52.301,2.79,0],["Grumium",17.8921,56.873,3.73,0],["Altais",19.2092,67.662,3.07,0],["Zeta Dra",17.1464,65.715,3.17,0],
+  ["Athebyne",16.3999,61.514,2.73,0],["Edasich",15.4155,58.966,3.29,0],["Thuban",14.0732,64.376,3.67,0],
+  ["Kornephoros",16.5037,21.490,2.78,0],["Sarin",17.2505,24.839,3.12,0],["Zeta Her",16.6881,31.603,2.81,0],["Eta Her",16.7149,38.922,3.48,0],["Eps Her",17.0048,30.926,3.92,0],["Pi Her",17.2508,36.809,3.16,0],
+  ["Alphecca",15.5781,26.715,2.22,1],["Nusakan",15.4638,29.106,3.66,0],["Gamma CrB",15.7124,26.296,3.81,0],["Theta CrB",15.5488,31.359,4.14,0],["Eps CrB",15.9598,26.878,4.14,0],
+  ["Sualocin",20.6606,15.912,3.77,0],["Rotanev",20.6258,14.595,3.64,0],["Gamma Del",20.7776,16.124,4.27,0],["Delta Del",20.7243,15.075,4.43,0],["Aldulfin",20.5535,11.303,4.03,0],
+  ["Gienah Crv",12.2634,-17.542,2.58,0],["Kraz",12.5731,-23.397,2.65,0],["Algorab",12.4977,-16.515,2.94,0],["Minkar",12.1687,-22.620,3.02,0],
+  ["Arneb",5.5455,-17.822,2.58,0],["Nihal",5.4708,-20.759,2.81,0],["Mu Lep",5.2155,-16.205,3.29,0],["Eps Lep",5.0910,-22.371,3.19,0],["Zeta Lep",5.7826,-14.822,3.55,0],
+  ["Miaplacidus",9.2200,-69.717,1.67,0],["Avior",8.3752,-59.509,1.86,0],["Aspidiske",9.2848,-59.275,2.21,0],["Alsephina",8.7451,-54.709,1.93,0],["Suhail",9.1333,-43.433,2.23,0],
+  ["Gamma Vel",8.1589,-47.337,1.75,0],["Naos",8.0597,-40.003,2.21,0],["Markeb",9.3686,-55.011,2.47,0],
+  ["Eps PsA",22.6776,-27.044,4.18,0],["Beta PsA",22.5251,-32.346,4.29,0],["Delta PsA",22.9325,-32.540,4.20,0],
+  ["Zeta Hya",8.9232,5.946,3.11,0],["Ashlesha",8.7796,6.419,3.38,0],["Delta Hya",8.6276,5.704,4.14,0],["Eta Hya",8.7204,3.399,4.30,0],["Nu Hya",10.8271,-16.194,3.11,0],["Gamma Hya",13.3154,-23.172,2.99,0],["Pi Hya",14.1062,-26.682,3.25,0],
 ];
 // Constellations as named stick figures — each gets a label at its centroid, and
 // (where one exists) a link to its fact panel in the journey.
@@ -2590,6 +2604,17 @@ const CONSTELLATIONS = [
   { name: "Aquarius", panel: null, lines: [["Sadalsuud","Sadalmelik"],["Sadalmelik","Sadachbia"],["Sadalmelik","Skat"]] },
   { name: "Pisces", panel: null, lines: [["Alrescha","Alpherg"],["Alrescha","Omega Psc"],["Omega Psc","Gamma Psc"]] },
   { name: "Ophiuchus", panel: null, lines: [["Rasalhague","Yed Prior"],["Yed Prior","Yed Post"],["Yed Post","Zeta Oph"],["Zeta Oph","Sabik"],["Sabik","Cebalrai"],["Cebalrai","Rasalhague"]] },
+  { name: "Cepheus", panel: null, lines: [["Alderamin","Zeta Cep"],["Alderamin","Alfirk"],["Zeta Cep","Iota Cep"],["Alfirk","Errai"],["Iota Cep","Errai"],["Alfirk","Iota Cep"]] },
+  { name: "Cetus", panel: null, lines: [["Menkar","Kaffaljidhma"],["Kaffaljidhma","Mira"],["Mira","Baten Kaitos"],["Baten Kaitos","Eta Cet"],["Eta Cet","Diphda"]] },
+  { name: "Draco", panel: null, lines: [["Eltanin","Rastaban"],["Rastaban","Grumium"],["Grumium","Eltanin"],["Grumium","Altais"],["Altais","Zeta Dra"],["Zeta Dra","Athebyne"],["Athebyne","Edasich"],["Edasich","Thuban"]] },
+  { name: "Hercules", panel: null, lines: [["Eta Her","Zeta Her"],["Eta Her","Pi Her"],["Pi Her","Eps Her"],["Zeta Her","Eps Her"],["Zeta Her","Kornephoros"],["Eps Her","Sarin"]] },
+  { name: "Corona Borealis", panel: null, lines: [["Theta CrB","Nusakan"],["Nusakan","Alphecca"],["Alphecca","Gamma CrB"],["Gamma CrB","Eps CrB"]] },
+  { name: "Delphinus", panel: null, lines: [["Sualocin","Gamma Del"],["Gamma Del","Delta Del"],["Delta Del","Rotanev"],["Rotanev","Sualocin"],["Rotanev","Aldulfin"]] },
+  { name: "Corvus", panel: null, lines: [["Gienah Crv","Algorab"],["Algorab","Kraz"],["Kraz","Minkar"],["Minkar","Gienah Crv"]] },
+  { name: "Lepus", panel: null, lines: [["Arneb","Mu Lep"],["Mu Lep","Eps Lep"],["Eps Lep","Nihal"],["Nihal","Arneb"],["Arneb","Zeta Lep"]] },
+  { name: "Argo Navis", panel: null, lines: [["Canopus","Avior"],["Avior","Miaplacidus"],["Avior","Aspidiske"],["Aspidiske","Markeb"],["Markeb","Alsephina"],["Alsephina","Gamma Vel"],["Gamma Vel","Naos"],["Gamma Vel","Suhail"],["Suhail","Markeb"]] },
+  { name: "Piscis Austrinus", panel: null, lines: [["Fomalhaut","Eps PsA"],["Eps PsA","Beta PsA"],["Beta PsA","Delta PsA"],["Delta PsA","Fomalhaut"]] },
+  { name: "Hydra", panel: null, lines: [["Zeta Hya","Ashlesha"],["Ashlesha","Delta Hya"],["Delta Hya","Eta Hya"],["Eta Hya","Zeta Hya"],["Zeta Hya","Alphard"],["Alphard","Nu Hya"],["Nu Hya","Gamma Hya"],["Gamma Hya","Pi Hya"]] },
 ];
 const CONST_LINES = CONSTELLATIONS.flatMap(c => c.lines);
 for (const c of CONSTELLATIONS) c.stars = [...new Set(c.lines.flat())];
@@ -2841,6 +2866,84 @@ const CONSTELLATION_LORE = {
     cultures: [
       { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Serpent-Bearer", text: "Asclepius, the healer so skilled he could raise the dead. His snake-entwined staff is still the symbol of medicine today — and the snake, Serpens, coils through his hands across the sky." },
       { flag: "⛎", who: "MODERN", saw: "The 13th zodiac sign", text: "The Sun actually spends about 18 days crossing Ophiuchus each year — more than in neighbouring Scorpius — yet astrology leaves it off the wheel of signs." },
+    ],
+  },
+  "Cepheus": {
+    tagline: "A house-shaped figure beside Cassiopeia — the king of the royal family drama, circling the pole forever.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "The King", text: "King Cepheus of Aethiopia — husband of vain Cassiopeia and father of Andromeda. The whole royal myth plays out around him: queen, princess, hero and sea monster, all neighbours in the sky." },
+      { flag: "📏", who: "MODERN ASTRONOMY", saw: "The cosmic measuring-stick", text: "His star Delta Cephei is the prototype 'Cepheid' — pulsating stars whose steady heartbeat lets astronomers measure distances to other galaxies. This quiet constellation calibrated the size of the universe." },
+    ],
+  },
+  "Cetus": {
+    tagline: "The sea monster of the Perseus legend — a vast autumn constellation swimming below the zodiac.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Sea Monster", text: "The beast sent to devour the chained princess Andromeda — turned to stone at the last moment when Perseus revealed Medusa's severed head." },
+      { flag: "✨", who: "MODERN ASTRONOMY", saw: "Mira, 'the Wonderful'", text: "Its star Mira swells and fades dramatically over 11 months — the first variable star ever recognised (1596), astonishing astronomers who believed the heavens never changed." },
+    ],
+  },
+  "Draco": {
+    tagline: "A dragon winding between the two Bears, coiling halfway around the pole of the sky.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Dragon Ladon", text: "The hundred-headed dragon that guarded the golden apples of the Hesperides, slain by Heracles — who kneels beside it in the sky to this day." },
+      { flag: "🔺", who: "ANCIENT EGYPT", saw: "The pole star of the pyramids", text: "When the Great Pyramids were built ~4,500 years ago, Earth's axis pointed at Draco's star Thuban — the pyramid shafts were aligned to it. Earth's slow wobble has since handed the job to Polaris." },
+    ],
+  },
+  "Hercules": {
+    tagline: "The strongman of the sky, kneeling in triumph — look for the 'Keystone', four stars marking his torso.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Kneeling Hero", text: "Heracles resting after his twelve labours, one foot on the head of the dragon Draco. Oddly, he hangs upside-down in the northern sky." },
+      { flag: "🌌", who: "MODERN", saw: "Home of the Great Cluster", text: "On the Keystone's edge sits M13, the Hercules Cluster — hundreds of thousands of ancient stars. In 1974 we beamed humanity's first deliberate radio message toward it." },
+    ],
+  },
+  "Corona Borealis": {
+    tagline: "A perfect little crown of seven stars — small, elegant, unmistakable.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "Ariadne's Crown", text: "The jewelled wedding crown of princess Ariadne, flung into the sky by Dionysus — its gems becoming stars." },
+      { flag: "🪃", who: "ABORIGINAL AUSTRALIA", saw: "The Boomerang", text: "To the Boorong people of Victoria this graceful arc was Won, a boomerang — one sky, a completely different and equally perfect picture." },
+    ],
+  },
+  "Delphinus": {
+    tagline: "A tiny, charming dolphin leaping out of the Milky Way — one of the smallest yet most recognisable constellations.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Rescuing Dolphin", text: "The dolphin that saved the musician Arion, who leapt overboard to escape murderous sailors — his last song had summoned the sea's kindest creature." },
+      { flag: "😄", who: "1814 · A HIDDEN JOKE", saw: "Sualocin & Rotanev", text: "Its two brightest stars bear names that puzzled astronomers for decades — until someone read them backwards: 'Nicolaus Venator', the Latin name of the observatory assistant who slipped himself into the sky forever." },
+    ],
+  },
+  "Corvus": {
+    tagline: "A compact quadrilateral near Spica — the crow of Apollo, perched on the sky.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Disgraced Crow", text: "Apollo's snow-white crow dawdled on an errand and lied about it — the furious god scorched its feathers black and set it in the sky, forever thirsty beside the Cup it cannot reach." },
+      { flag: "🌾", who: "BABYLON", saw: "The Raven", text: "Babylonian skywatchers also saw a raven here, pecking at the tail of their great serpent — the same stars, the same bird, across two thousand years." },
+    ],
+  },
+  "Lepus": {
+    tagline: "The hare crouching right under Orion's feet — hunted across the sky every night by the Great Dog.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Hare", text: "Placed at the Hunter's feet for the eternal chase — with Sirius, the Great Dog's star, bounding after it night after night." },
+      { flag: "🐫", who: "EARLY ARABIA", saw: "The camels' rest", text: "Before adopting the Greek figures, Arab skywatchers saw here camels kneeling to drink from the celestial river of nearby Eridanus." },
+    ],
+  },
+  "Argo Navis": {
+    tagline: "The great ship of the Argonauts sailing the far-southern sky — so vast it was broken into three constellations.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Ship Argo", text: "The fifty-oared galley that carried Jason and the Argonauts to steal the Golden Fleece — with brilliant Canopus, second-brightest star in the sky, marking its steering oar." },
+      { flag: "✂️", who: "1750s · MODERN", saw: "Broken into three", text: "Argo was so enormous that astronomer Lacaille split it into Carina (the keel), Puppis (the stern) and Vela (the sails) — the only ancient constellation ever dismantled." },
+      { flag: "🛶", who: "MĀORI · AOTEAROA", saw: "Atutahi and the canoe", text: "Canopus is Atutahi, a chiefly, sacred star used across Polynesia for open-ocean navigation." },
+    ],
+  },
+  "Piscis Austrinus": {
+    tagline: "The Southern Fish, drinking the stream poured by Aquarius — home of lonely, brilliant Fomalhaut.",
+    cultures: [
+      { flag: "🏛️", who: "GREECE & BABYLON", saw: "The Great Fish", text: "The parent of the zodiac's two Pisces fish, gulping down the Water-Bearer's endless stream. 'Fomalhaut' is Arabic for 'the mouth of the fish'." },
+      { flag: "👑", who: "ANCIENT PERSIA", saw: "A Royal Star", text: "Fomalhaut was one of Persia's four Royal Stars, the 'watchers' guarding the four corners of the heavens — and in 2008 it became one of the first stars ever photographed with a planet." },
+    ],
+  },
+  "Hydra": {
+    tagline: "The water-snake — the largest constellation of all, stretching a quarter of the way around the sky.",
+    cultures: [
+      { flag: "🏛️", who: "ANCIENT GREECE", saw: "The Many-Headed Monster", text: "The swamp-serpent Heracles fought as his second labour — every head he cut off grew back double until he seared the stumps with fire." },
+      { flag: "🐉", who: "CHINA", saw: "The Vermillion Bird's willow", text: "The snake's head stars formed Liǔ, the Willow — the drooping branch-mansion of the great Vermillion Bird of the South." },
     ],
   },
 };
@@ -3453,6 +3556,17 @@ const CONST_ART = {
   "Pisces": { file: "pisces.png", a: [[24,104,1.0470,31.804],[111,489,2.0341,2.764],[481,155,23.2861,3.282]] },
   "Ursa Minor": { file: "ursa-minor.png", a: [[15,20,2.5297,89.264],[193,51,12.2033,77.616],[93,209,16.2918,75.755]] },
   "Virgo": { file: "virgo.png", a: [[65,389,14.7708,1.893],[454,57,11.7643,6.529],[338,382,13.4199,-11.161]] },
+  "Argo Navis": { file: "argonavis.png", a: [[202,455,9.2200,-69.717],[62,216,10.2456,-42.122],[298,22,8.1257,-24.304]] },
+  "Cepheus": { file: "cepheus.png", a: [[60,335,23.6558,77.632],[125,170,21.4777,70.561],[335,147,22.1809,58.201]] },
+  "Cetus": { file: "cetus.png", a: [[87,63,3.0396,4.353],[28,274,2.7354,-13.859],[412,440,0.3238,-8.824]] },
+  "Corona Borealis": { file: "corona-borealis.png", a: [[16,186,16.0240,29.851],[201,203,15.7124,26.296],[157,20,15.5488,31.359]] },
+  "Corvus": { file: "corvus.png", a: [[65,59,12.4977,-16.515],[77,235,12.5731,-23.397],[213,187,12.1687,-22.620]] },
+  "Delphinus": { file: "delphinus.png", a: [[59,31,20.7776,16.124],[75,148,20.8272,12.545],[211,143,20.5535,11.303]] },
+  "Draco": { file: "draco.png", a: [[13,411,11.5234,69.331],[361,154,17.5072,52.301],[449,429,19.8028,70.268]] },
+  "Hercules": { file: "hercules.png", a: [[44,115,16.3653,19.153],[254,477,16.3290,46.313],[441,102,18.1257,28.762]] },
+  "Hydra": { file: "hydra.png", a: [[26,491,13.3154,-23.172],[111,149,11.3523,6.029],[401,33,8.9232,5.946]] },
+  "Lepus": { file: "lepus.png", a: [[21,48,6.1026,-14.935],[246,62,5.2050,-11.869],[213,235,5.0910,-22.371]] },
+  "Piscis Austrinus": { file: "piscis-austrinus.png", a: [[190,5,22.9325,-32.540],[82,202,21.7956,-30.898],[236,92,22.6776,-27.044]] },
 };
 let svArtOn = localStorage.getItem("cosmic-art") !== "0";
 const artImgs = {};
