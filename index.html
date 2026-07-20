@@ -852,7 +852,7 @@
         <div id="sky-time-label" style="display:none"></div>
         <button id="sky-fullbtn">🔭 Point at the sky (fullscreen)</button>
         <button id="sky-sharebtn">📤 Share tonight's sky</button>
-        <div class="tnote">You're looking straight up: the centre is directly overhead, the edge is your horizon, and N·E·S·W are the compass points. Planets, the Sun and Moon are labelled; faint dots are the brightest stars. Milky Way imagery: ESO/S. Brunier (CC BY 4.0).</div>
+        <div class="tnote">You're looking straight up: the centre is directly overhead, the edge is your horizon, and N·E·S·W are the compass points. Planets, the Sun and Moon are labelled; faint dots are the brightest stars. Milky Way imagery: ESO/S. Brunier (CC BY 4.0). Constellation art: Johan Meuris / Stellarium (Free Art License).</div>
       </div>
     </div>
 
@@ -928,6 +928,7 @@
   <div id="sv-bottom">
     <button class="nav-btn" id="sv-tour-start">🎧 Guided tour</button>
     <button class="nav-btn" id="sv-point">📱 Point mode</button>
+    <button class="nav-btn" id="sv-art" title="Constellation figures">🎨</button>
     <button class="nav-btn" id="sv-time" style="display:none"></button>
   </div>
 </div>
@@ -3401,6 +3402,73 @@ function svResize() {
   const c = document.getElementById("sv-canvas"), dpr = Math.min(devicePixelRatio || 1, 2);
   c.width = innerWidth * dpr; c.height = innerHeight * dpr;
 }
+/* ---- Constellation artwork (fullscreen view) ----
+   Stellarium western sky-culture figures © Johan Meuris, Free Art License.
+   Each image is pinned to the sky by 3 anchor stars: [imgX, imgY, RA h, Dec°]
+   (anchors from Stellarium's own calibration; star coords from the HYG catalog —
+   cross-checked against our STARS table: Mimosa/Regulus/Altair/Saiph match). */
+const CONST_ART = {
+  "Andromeda": { file: "andromeda.png", a: [[198,215,0.8302,41.079],[337,136,0.6555,30.861],[224,428,2.0650,42.330]] },
+  "Aquila": { file: "aquila.png", a: [[163,232,19.8464,8.868],[385,131,18.9937,15.068],[397,397,19.1042,-4.883]] },
+  "Boötes": { file: "bootes.png", a: [[225,222,14.7498,27.074],[365,184,14.5346,38.308],[207,401,13.9114,18.398]] },
+  "Cassiopeia": { file: "cassiopeia.png", a: [[390,336,1.9066,63.670],[163,156,0.6751,56.537],[73,243,0.1529,59.150]] },
+  "Canis Major": { file: "canis-major.png", a: [[21,347,7.4016,-29.303],[321,24,6.9032,-12.039],[318,492,6.3386,-30.063]] },
+  "Southern Cross": { file: "crux.png", a: [[112,21,12.5194,-57.113],[42,20,12.7954,-59.689],[21,106,12.4433,-63.099]] },
+  "Cygnus": { file: "cygnus.png", a: [[7,382,21.7357,28.743],[474,46,19.2850,53.368],[467,453,19.5120,27.960]] },
+  "Gemini": { file: "gemini.png", a: [[14,81,7.7408,24.398],[117,252,6.7548,12.896],[249,165,6.0687,23.263]] },
+  "Leo": { file: "leo.png", a: [[69,411,11.8177,14.572],[383,186,10.1395,11.967],[321,32,9.7642,23.774]] },
+  "Orion": { file: "orion.png", a: [[59,11,5.9064,20.276],[329,477,5.7959,-9.670],[421,91,4.8307,6.961]] },
+  "Pegasus": { file: "pegasus.png", a: [[164,41,21.7364,9.875],[47,283,22.1665,33.178],[409,349,0.2206,15.184]] },
+  "Perseus": { file: "perseus.png", a: [[164,323,3.9642,40.010],[299,175,3.4054,49.861],[385,386,2.8431,38.319]] },
+  "Scorpius": { file: "scorpius.png", a: [[447,29,16.0906,-19.805],[62,365,17.5601,-37.104],[217,462,16.9097,-42.361]] },
+  "Sagittarius": { file: "sagittarius.png", a: [[96,82,19.3612,-17.847],[307,492,19.3870,-44.800],[506,100,17.7927,-27.831]] },
+  "Taurus": { file: "taurus.png", a: [[13,92,5.6274,21.143],[399,438,3.4136,9.029],[382,192,3.8479,23.961]] },
+  "Big Dipper": { file: "ursa-major.png", a: [[26,75,13.7924,49.313],[452,272,8.5044,60.718],[258,394,10.2850,42.914]] },
+};
+let svArtOn = localStorage.getItem("cosmic-art") !== "0";
+const artImgs = {};
+function artImg(file) {
+  if (!(file in artImgs)) {
+    const im = new Image();
+    artImgs[file] = null; // pending
+    im.onload = () => { if (im.naturalWidth && im.naturalHeight) artImgs[file] = im; }; // 0-size guard (see mw-band fix)
+    im.src = "const-art/" + file;
+  }
+  return artImgs[file];
+}
+function drawConstArt(x, project, jdv) {
+  for (const name in CONST_ART) {
+    const art = CONST_ART[name];
+    const P = [];
+    let anyUp = false, ok = true;
+    for (const [u, v, ra, dec] of art.a) {
+      const h = eqToHoriz(ra, dec, jdv, skyLoc.lat, skyLoc.lon);
+      if (h.alt > 0) anyUp = true;
+      const p = project(h.az, h.alt);
+      if (!p) { ok = false; break; }
+      P.push(p);
+    }
+    if (!ok || !anyUp) continue;
+    const img = artImg(art.file); if (!img) continue; // still loading (or failed) — sky works fine without
+    // affine (image px → screen) solved exactly from the 3 anchor pairs
+    const [[u1,v1],[u2,v2],[u3,v3]] = art.a;
+    const u21 = u2-u1, v21 = v2-v1, u31 = u3-u1, v31 = v3-v1;
+    const det = u21*v31 - u31*v21; if (Math.abs(det) < 1e-6) continue;
+    const x21 = P[1][0]-P[0][0], y21 = P[1][1]-P[0][1], x31 = P[2][0]-P[0][0], y31 = P[2][1]-P[0][1];
+    const a = (x21*v31 - x31*v21)/det, c = (x31*u21 - x21*u31)/det;
+    const b = (y21*v31 - y31*v21)/det, d = (y31*u21 - y21*u31)/det;
+    const e = P[0][0] - a*u1 - c*v1, f = P[0][1] - b*u1 - d*v1;
+    // skip wildly-stretched projections at the view edge (behind-camera wrap artifacts)
+    const scale2 = Math.max(a*a + b*b, c*c + d*d);
+    if (scale2 > 36 || scale2 < 1e-6) continue;
+    x.save();
+    x.transform(a, b, c, d, e, f); // composes with the dpr baseline transform
+    x.globalCompositeOperation = "screen"; // additive: the art's black background vanishes, only the figure glows
+    x.globalAlpha = 0.34;
+    try { x.drawImage(img, 0, 0); } catch (err) {}
+    x.restore();
+  }
+}
 function drawSV() {
   const c = document.getElementById("sv-canvas"), x = c.getContext("2d");
   const dpr = Math.min(devicePixelRatio || 1, 2), w = innerWidth, h = innerHeight, cx = w/2, cy = h/2;
@@ -3470,6 +3538,8 @@ function drawSV() {
     x.font = (i % 2 ? "10px" : "bold 13px") + " sans-serif";
     x.fillText(CARD8[i], p[0], p[1]);
   }
+  // ghostly constellation figures (under the lines), night only
+  if (!day && svArtOn) drawConstArt(x, project, jdv);
   // constellation lines (under the stars) — both endpoints must be above the horizon
   const starAA = {};
   for (const b of scene.list) if (b.kind === "star") starAA[b.name] = b;
@@ -3813,6 +3883,15 @@ document.getElementById("sky-fullbtn").addEventListener("click", svEnterFromToni
 document.getElementById("sky-sharebtn").addEventListener("click", shareSky);
 document.getElementById("sv-exit").addEventListener("click", svExit);
 document.getElementById("sv-point").addEventListener("click", svTogglePoint);
+const svArtBtn = document.getElementById("sv-art");
+function updateArtBtn() { svArtBtn.style.opacity = svArtOn ? "1" : ".45"; svArtBtn.title = svArtOn ? "Constellation figures: on" : "Constellation figures: off"; }
+svArtBtn.addEventListener("click", () => {
+  svArtOn = !svArtOn;
+  localStorage.setItem("cosmic-art", svArtOn ? "1" : "0");
+  updateArtBtn();
+  showToast(svArtOn ? "🎨 Constellation figures on" : "Constellation figures off — clean star chart");
+});
+updateArtBtn();
 
 const tonightEl = document.getElementById("tonight");
 let issTimer = null, issTrail = [];
