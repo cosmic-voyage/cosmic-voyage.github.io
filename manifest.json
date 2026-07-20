@@ -1,0 +1,15 @@
+{
+  "name": "Cosmic Voyage",
+  "short_name": "Cosmic Voyage",
+  "description": "An interactive journey through the universe — with a live map of tonight's sky.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#05060f",
+  "theme_color": "#0a0e28",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

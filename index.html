@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Cosmic Voyage — An Interactive Journey Through the Universe</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0e28">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" href="icon-192.png">
 <style>
   :root {
     --bg: #030014;
@@ -463,6 +467,14 @@
   #sv-tour-ctrl .nav-btn { padding: 8px 13px; }
   #sv-tour-prog { font-size: 12px; color: var(--dim); min-width: 46px; text-align: center; letter-spacing: .05em; }
   #sv-tour-start { background: linear-gradient(135deg, rgba(192,132,252,.24), rgba(125,211,252,.24)); border-color: var(--accent); color: #eaf1ff; }
+  /* Night-vision mode: multiply the whole app with deep red — kills the green/blue light
+     that destroys dark adaptation, leaving a dim all-red display (astronomer's trick) */
+  #redmode-overlay {
+    position: fixed; inset: 0; z-index: 99999; pointer-events: none; display: none;
+    background: #c41010; mix-blend-mode: multiply;
+  }
+  body.redmode #redmode-overlay { display: block; }
+  #sv-red.active { border-color: #ff5544; color: #ff5544; background: rgba(255,60,40,.15); }
 
   /* ---------- Size Comparison mode ---------- */
   #compareSpace {
@@ -929,6 +941,7 @@
     <button class="nav-btn" id="sv-tour-start">🎧 Guided tour</button>
     <button class="nav-btn" id="sv-point">📱 Point mode</button>
     <button class="nav-btn" id="sv-art" title="Constellation figures">🎨</button>
+    <button class="nav-btn" id="sv-red" title="Night vision (red) mode">🔴</button>
     <button class="nav-btn" id="sv-time" style="display:none"></button>
   </div>
 </div>
@@ -1071,6 +1084,7 @@
 </aside>
 
 <div id="toast"></div>
+<div id="redmode-overlay"></div>
 
 <div id="intro">
   <div class="kicker">An interactive journey</div>
@@ -3406,13 +3420,32 @@ function drawSkyMap(target, scale, jdOverride) {
   if (ro) ro.innerHTML = `📍 <b>${skyLoc.name}</b> · ${cond}` + (sunTimesStr ? `<br>${sunTimesStr}` : "");
 }
 let sunTimesStr = "";
+// The stargazer's question: when is it TRULY dark tonight? (Sun well down AND no bright Moon.)
+// Scans the next 24h; a thin crescent (<15% lit) doesn't count as light pollution.
+function darkestWindow() {
+  const jd0 = jdNow(), lat = skyLoc.lat, lon = skyLoc.lon;
+  const dark = jd => bodyAltAz("Sun", jd, lat, lon).alt < -15 && (bodyAltAz("Moon", jd, lat, lon).alt < 0.5 || moonIllum(jd) < 0.15);
+  let best = null, cur = null, anySunDark = false;
+  for (let m = 0; m <= 1440; m += 6) {
+    const jd = jd0 + m / 1440;
+    if (bodyAltAz("Sun", jd, lat, lon).alt < -15) anySunDark = true;
+    if (dark(jd)) { if (!cur) cur = { a: jd, b: jd }; else cur.b = jd; }
+    else if (cur) { if (!best || cur.b - cur.a > best.b - best.a) best = cur; cur = null; }
+  }
+  if (cur && (!best || cur.b - cur.a > best.b - best.a)) best = cur;
+  if (best && (best.b - best.a) >= 30 / 1440)
+    return `🌌 Darkest skies: <b>${fmtEventTime(best.a)} – ${fmtEventTime(best.b)}</b>` + (moonIllum() > 0.15 ? "" : " (no Moon to spoil it)");
+  if (anySunDark) return `🌕 Moonlight all night — no fully dark window (${Math.round(moonIllum() * 100)}% Moon)`;
+  return "🌆 No true darkness at this latitude right now";
+}
 function renderTimes() { // sun line + moon line + planet rise/set (recomputed on open & location change)
   const ev = riseSet("Sun", skyLoc.lat, skyLoc.lon);
-  sunTimesStr = ev.slice(0, 2).map(e => (e.type === "set" ? "☀️ sets " : "🌅 rises ") + fmtEventTime(e.jd) + " in the " + evDir("Sun", e)).join(" · ")
-    || "☀️ midnight sun / polar night at this latitude";
+  sunTimesStr = (ev.slice(0, 2).map(e => (e.type === "set" ? "☀️ sets " : "🌅 rises ") + fmtEventTime(e.jd) + " in the " + evDir("Sun", e)).join(" · ")
+    || "☀️ midnight sun / polar night at this latitude") + "<br>" + darkestWindow();
   const mEl = document.getElementById("moon-times");
   if (mEl) mEl.textContent = "🕐 " + riseSetLine("Moon");
   renderPlanets();
+  drawSkyMap(); // repaint the readout — on first open it draws before these strings exist
 }
 function updateBortleUI() {
   const b = BORTLE[skyBortle];
@@ -4053,6 +4086,23 @@ svArtBtn.addEventListener("click", () => {
   showToast(svArtOn ? "🎨 Constellation figures on" : "Constellation figures off — clean star chart");
 });
 updateArtBtn();
+// night-vision (red) mode — preserves dark adaptation under a truly dark sky
+let redMode = localStorage.getItem("cosmic-red") === "1";
+function applyRedMode() {
+  document.body.classList.toggle("redmode", redMode);
+  document.getElementById("sv-red").classList.toggle("active", redMode);
+}
+document.getElementById("sv-red").addEventListener("click", () => {
+  redMode = !redMode;
+  localStorage.setItem("cosmic-red", redMode ? "1" : "0");
+  applyRedMode();
+  showToast(redMode ? "🔴 Night vision on — your dark adaptation is safe" : "Night vision off");
+});
+applyRedMode();
+// offline support: one visit caches the whole app (incl. Milky Way + artwork) —
+// afterwards it works with no signal, and "Add to Home Screen" installs it like an app.
+// Sky data is never cached: it's computed live from the clock + location.
+if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 
 const tonightEl = document.getElementById("tonight");
 let issTimer = null, issTrail = [];
