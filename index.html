@@ -2975,7 +2975,7 @@ const MW_SEGS = 200, MW_LAT = 25;
 const MW_GRID = [];
 for (let i = 0; i <= MW_SEGS; i++) {
   const l = norm360(180 - (i / MW_SEGS) * 360);
-  MW_GRID.push({ top: galToEq(l, MW_LAT), bot: galToEq(l, -MW_LAT) });
+  MW_GRID.push({ top: galToEq(l, MW_LAT), mid: galToEq(l, 0), bot: galToEq(l, -MW_LAT) }); // mid row halves each quad — bounds perspective smear
 }
 let mwLayer = null;
 function drawMilkyWay(x, plot, day, dpr = 1) {
@@ -2993,16 +2993,32 @@ function drawMilkyWay(x, plot, day, dpr = 1) {
   g.imageSmoothingQuality = "high";
   g.setTransform(1, 0, 0, 1, 0, 0);
   g.clearRect(0, 0, cw, ch);
+  const cwCss = cw / dpr, chCss = ch / dpr; // plot() returns logical coords
+  const inView = p => p[0] > -0.3 * cwCss && p[0] < 1.3 * cwCss && p[1] > -0.3 * chCss && p[1] < 1.3 * chCss;
+  const H2 = H / 2;
+  // project the three grid rows once
+  const R = [[], [], []];
+  for (let i = 0; i <= MW_SEGS; i++) {
+    R[0].push(plot(MW_GRID[i].top.ra, MW_GRID[i].top.dec));
+    R[1].push(plot(MW_GRID[i].mid.ra, MW_GRID[i].mid.dec));
+    R[2].push(plot(MW_GRID[i].bot.ra, MW_GRID[i].bot.dec));
+  }
   for (let i = 0; i < MW_SEGS; i++) {
-    const A = plot(MW_GRID[i].top.ra, MW_GRID[i].top.dec);
-    const B = plot(MW_GRID[i + 1].top.ra, MW_GRID[i + 1].top.dec);
-    const C = plot(MW_GRID[i].bot.ra, MW_GRID[i].bot.dec);
-    if (!A || !B || !C) continue;
-    if (Math.hypot(B[0] - A[0], B[1] - A[1]) > 900) continue; // degenerate edge-of-view segment
-    g.setTransform(dpr * (B[0] - A[0]) / segW, dpr * (B[1] - A[1]) / segW,
-                   dpr * (C[0] - A[0]) / H,     dpr * (C[1] - A[1]) / H,
-                   dpr * A[0], dpr * A[1]);
-    g.drawImage(tex, i * segW, 0, segW, H, 0, 0, segW + 2.5, H);
+    for (let r = 0; r < 2; r++) {
+      const A = R[r][i], B = R[r][i + 1], C = R[r + 1][i], Dt = R[r + 1][i + 1];
+      if (!A || !B || !C || !Dt) continue;
+      const wAB = Math.hypot(B[0] - A[0], B[1] - A[1]);
+      if (wAB > 900) continue; // degenerate edge-of-view segment
+      if (!inView(A) && !inView(B) && !inView(C) && !inView(Dt)) continue; // fully off-screen
+      // a parallelogram misses the quad's true 4th corner under perspective — the mismatch
+      // opens thin wedge gaps between neighbours ("tick" artifacts), so widen the overlap to cover it
+      const wedge = Math.hypot(Dt[0] - (B[0] + C[0] - A[0]), Dt[1] - (B[1] + C[1] - A[1]));
+      const ou = Math.min(segW * 2, 2.5 + wedge * segW / Math.max(wAB, 1));
+      g.setTransform(dpr * (B[0] - A[0]) / segW, dpr * (B[1] - A[1]) / segW,
+                     dpr * (C[0] - A[0]) / H2,   dpr * (C[1] - A[1]) / H2,
+                     dpr * A[0], dpr * A[1]);
+      g.drawImage(tex, i * segW, r * H2, segW, H2, 0, 0, segW + ou, H2 + 2);
+    }
   }
   const prevComp = x.globalCompositeOperation;
   x.globalCompositeOperation = "screen";
@@ -3424,6 +3440,19 @@ const CONST_ART = {
   "Sagittarius": { file: "sagittarius.png", a: [[96,82,19.3612,-17.847],[307,492,19.3870,-44.800],[506,100,17.7927,-27.831]] },
   "Taurus": { file: "taurus.png", a: [[13,92,5.6274,21.143],[399,438,3.4136,9.029],[382,192,3.8479,23.961]] },
   "Big Dipper": { file: "ursa-major.png", a: [[26,75,13.7924,49.313],[452,272,8.5044,60.718],[258,394,10.2850,42.914]] },
+  "Aquarius": { file: "aquarius.png", a: [[144,464,23.3828,-20.101],[179,98,22.0964,-0.320],[465,49,20.7946,-9.496]] },
+  "Aries": { file: "aries.png", a: [[12,130,2.8331,27.261],[58,206,2.9869,21.340],[210,47,1.8922,19.294]] },
+  "Auriga": { file: "auriga.png", a: [[196,189,5.9954,37.213],[419,208,5.2782,45.998],[290,423,4.9499,33.166]] },
+  "Cancer": { file: "cancer.png", a: [[29,166,8.9748,11.858],[101,255,8.2753,9.186],[206,91,8.3344,27.218]] },
+  "Capricornus": { file: "capricornus.png", a: [[15,436,21.7840,-16.127],[403,7,20.3009,-12.545],[460,438,20.8637,-26.919]] },
+  "Centaurus": { file: "centaurus.png", a: [[118,157,14.1114,-36.370],[194,444,14.6608,-60.834],[463,412,11.5964,-63.020]] },
+  "Canis Minor": { file: "canis-minor.png", a: [[96,43,7.7712,10.768],[101,171,7.6550,5.225],[184,124,7.4525,8.289]] },
+  "Libra": { file: "libra.png", a: [[41,27,15.2834,-9.383],[58,170,15.8971,-16.729],[224,107,15.0678,-25.282]] },
+  "Lyra": { file: "lyra.png", a: [[100,96,18.9084,36.899],[157,38,18.6156,38.784],[139,162,18.8347,33.363]] },
+  "Ophiuchus": { file: "ophiuchus.png", a: [[5,183,18.9370,4.204],[452,47,15.7698,15.422],[238,453,17.5236,-23.963]] },
+  "Pisces": { file: "pisces.png", a: [[24,104,1.0470,31.804],[111,489,2.0341,2.764],[481,155,23.2861,3.282]] },
+  "Ursa Minor": { file: "ursa-minor.png", a: [[15,20,2.5297,89.264],[193,51,12.2033,77.616],[93,209,16.2918,75.755]] },
+  "Virgo": { file: "virgo.png", a: [[65,389,14.7708,1.893],[454,57,11.7643,6.529],[338,382,13.4199,-11.161]] },
 };
 let svArtOn = localStorage.getItem("cosmic-art") !== "0";
 const artImgs = {};
@@ -3437,6 +3466,7 @@ function artImg(file) {
   return artImgs[file];
 }
 function drawConstArt(x, project, jdv) {
+  const Ld = dirVec(svAz, svAlt), rimDot = Math.cos(75 * D2R);
   for (const name in CONST_ART) {
     const art = CONST_ART[name];
     const P = [];
@@ -3444,6 +3474,7 @@ function drawConstArt(x, project, jdv) {
     for (const [u, v, ra, dec] of art.a) {
       const h = eqToHoriz(ra, dec, jdv, skyLoc.lat, skyLoc.lon);
       if (h.alt > 0) anyUp = true;
+      if (dot3(dirVec(h.az, h.alt), Ld) < rimDot) { ok = false; break; } // anchor too far off-axis → rim distortion stripes
       const p = project(h.az, h.alt);
       if (!p) { ok = false; break; }
       P.push(p);
@@ -3460,7 +3491,16 @@ function drawConstArt(x, project, jdv) {
     const e = P[0][0] - a*u1 - c*v1, f = P[0][1] - b*u1 - d*v1;
     // skip wildly-stretched projections at the view edge (behind-camera wrap artifacts)
     const scale2 = Math.max(a*a + b*b, c*c + d*d);
-    if (scale2 > 36 || scale2 < 1e-6) continue;
+    if (scale2 > 25 || scale2 < 1e-6) continue; // >5× linear stretch = distorted edge case, skip
+    // the affine is exact only near its anchors — if an image CORNER extrapolates far
+    // off-screen the figure smears into streaks (e.g. hair strands → giant stripes), so skip
+    const W2 = img.naturalWidth, H2 = img.naturalHeight, lim = 1.6 * Math.max(innerWidth, innerHeight);
+    let wild = false;
+    for (const [cu, cv2] of [[0, 0], [W2, 0], [0, H2], [W2, H2]]) {
+      const sx2 = a * cu + c * cv2 + e - innerWidth / 2, sy2 = b * cu + d * cv2 + f - innerHeight / 2;
+      if (Math.abs(sx2) > lim || Math.abs(sy2) > lim) { wild = true; break; }
+    }
+    if (wild) continue;
     x.save();
     x.transform(a, b, c, d, e, f); // composes with the dpr baseline transform
     x.globalCompositeOperation = "screen"; // additive: the art's black background vanishes, only the figure glows
@@ -3512,11 +3552,18 @@ function drawSV() {
   const jdv = skyJd();
   drawMilkyWay(x, (ra, dec) => {
     const hh = eqToHoriz(ra, dec, jdv, skyLoc.lat, skyLoc.lon);
-    return hh.alt < -30 ? null : project(hh.az, hh.alt);
+    if (hh.alt < -30) return null;
+    if (dot3(dirVec(hh.az, hh.alt), Ld) < 0.53) return null; // >58° off-axis: past the screen's max half-diagonal (~54°), so off-screen — and culling here ends the band cleanly instead of smearing rim slivers
+    return project(hh.az, hh.alt);
   }, day, dpr);
-  // horizon + ground
+  // horizon + ground (only the arc within ~70° of the view axis — beyond that the
+  // sort-by-x below would zigzag the wrapped-around circle into sawtooth "tick" artifacts)
   const horizon = [];
-  for (let d = -140; d <= 140; d += 3) { const p = project(norm360(svAz + d), 0); if (p) horizon.push(p); }
+  for (let d = -140; d <= 140; d += 3) {
+    const haz = norm360(svAz + d);
+    if (dot3(dirVec(haz, 0), Ld) < 0.34) continue;
+    const p = project(haz, 0); if (p) horizon.push(p);
+  }
   horizon.sort((a, b) => a[0] - b[0]);
   if (horizon.length > 1) {
     x.beginPath();
