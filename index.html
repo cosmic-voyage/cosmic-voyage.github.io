@@ -2438,15 +2438,19 @@ function fmtEventTime(jd) {
   const t = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   return d.getDate() !== new Date().getDate() ? t + " tomorrow" : t;
 }
+const CARD16 = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+const cardinal16 = az => CARD16[Math.round(((az % 360) + 360) % 360 / 22.5) % 16];
+// compass direction of a body at the moment of a rise/set event
+const evDir = (name, e) => cardinal16(bodyAltAz(name, e.jd, skyLoc.lat, skyLoc.lon).az);
 function riseSetLine(name) {
   const ev = riseSet(name, skyLoc.lat, skyLoc.lon);
   const upNow = bodyAltAz(name, jdNow(), skyLoc.lat, skyLoc.lon).alt > (name === "Sun" ? -0.833 : -0.567);
   if (!ev.length) return upNow ? "up all day and night" : "stays below the horizon today";
   const rise = ev.find(e => e.type === "rise"), set = ev.find(e => e.type === "set");
-  if (upNow && set) return `up now · sets ${fmtEventTime(set.jd)}`;
-  let s = rise ? `rises ${fmtEventTime(rise.jd)}` : "";
-  if (rise && set && set.jd > rise.jd) s += ` · sets ${fmtEventTime(set.jd)}`;
-  return s || (set ? `sets ${fmtEventTime(set.jd)}` : "");
+  if (upNow && set) return `up now · sets ${fmtEventTime(set.jd)} (${evDir(name, set)})`;
+  let s = rise ? `rises ${fmtEventTime(rise.jd)} (${evDir(name, rise)})` : "";
+  if (rise && set && set.jd > rise.jd) s += ` · sets ${fmtEventTime(set.jd)} (${evDir(name, set)})`;
+  return s || (set ? `sets ${fmtEventTime(set.jd)} (${evDir(name, set)})` : "");
 }
 
 /* ---- Full alt/az sky-position engine ----
@@ -3284,7 +3288,7 @@ function drawSkyMap(target, scale, jdOverride) {
 let sunTimesStr = "";
 function renderTimes() { // sun line + moon line + planet rise/set (recomputed on open & location change)
   const ev = riseSet("Sun", skyLoc.lat, skyLoc.lon);
-  sunTimesStr = ev.slice(0, 2).map(e => (e.type === "set" ? "☀️ sets " : "🌅 rises ") + fmtEventTime(e.jd)).join(" · ")
+  sunTimesStr = ev.slice(0, 2).map(e => (e.type === "set" ? "☀️ sets " : "🌅 rises ") + fmtEventTime(e.jd) + " in the " + evDir("Sun", e)).join(" · ")
     || "☀️ midnight sun / polar night at this latitude";
   const mEl = document.getElementById("moon-times");
   if (mEl) mEl.textContent = "🕐 " + riseSetLine("Moon");
