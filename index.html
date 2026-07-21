@@ -942,6 +942,7 @@
     <button class="nav-btn" id="sv-point">📱 Point mode</button>
     <button class="nav-btn" id="sv-art" title="Constellation figures">🎨</button>
     <button class="nav-btn" id="sv-red" title="Night vision (red) mode">🔴</button>
+    <button class="nav-btn" id="sv-share" title="Share this view">📤</button>
     <button class="nav-btn" id="sv-time" style="display:none"></button>
   </div>
 </div>
@@ -4104,6 +4105,59 @@ applyRedMode();
 // Sky data is never cached: it's computed live from the clock + location.
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 
+/* ---- Share this view: a snapshot of the point-at-sky screen + a "magic link"
+   that recreates the exact view (place, moment, direction) interactively ---- */
+function viewShareLink() {
+  return location.origin + location.pathname
+    + `?sky=${skyLoc.lat.toFixed(3)},${skyLoc.lon.toFixed(3)},${skyJd().toFixed(5)},${svAz.toFixed(1)},${svAlt.toFixed(1)}`
+    + `&n=${encodeURIComponent(skyLoc.name)}`;
+}
+function buildViewCard() {
+  drawSV(); // fresh frame
+  const src = document.getElementById("sv-canvas");
+  const scale = Math.min(1, 1080 / src.width);
+  const w = Math.round(src.width * scale), h = Math.round(src.height * scale), strip = Math.round(w * 0.14);
+  const card = document.createElement("canvas"); card.width = w; card.height = h + strip;
+  const x = card.getContext("2d");
+  x.drawImage(src, 0, 0, w, h);
+  x.fillStyle = "#05060f"; x.fillRect(0, h, w, strip);
+  x.strokeStyle = "rgba(125,211,252,.35)"; x.lineWidth = 2; x.beginPath(); x.moveTo(0, h); x.lineTo(w, h); x.stroke();
+  x.textAlign = "left"; x.textBaseline = "middle";
+  x.fillStyle = "#eaf1ff"; x.font = `700 ${Math.round(strip * 0.24)}px sans-serif`;
+  x.fillText(`Looking ${CARD8[Math.round(svAz / 45) % 8]} · ${Math.round(svAlt)}° up · over ${skyLocLabel()}`, w * 0.04, h + strip * 0.32);
+  x.fillStyle = "#8fa2c8"; x.font = `400 ${Math.round(strip * 0.19)}px sans-serif`;
+  x.fillText(skySimDate().toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) + "  ·  ✦ Cosmic Voyage — cosmic-voyage.github.io", w * 0.04, h + strip * 0.68);
+  return card;
+}
+function shareSkyView() {
+  let card; try { card = buildViewCard(); } catch (e) { showToast("Couldn't capture the view 😕"); return; }
+  const link = viewShareLink();
+  shareCanvas(card, "my-sky-view.png", "The sky I'm looking at",
+    `The sky I'm looking at right now 🌌 Open my exact view — then drag to look around: ${link}`, link);
+}
+document.getElementById("sv-share").addEventListener("click", shareSkyView);
+// arriving via a shared view link: jump straight into their sky (place + moment + direction).
+// Deferred to window load — entering the fullscreen view mid-parse races other init.
+addEventListener("load", () => setTimeout(() => {
+  try {
+    const q = new URLSearchParams(location.search);
+    if (!q.get("sky")) return;
+    const [shLat, shLon, shJd, shAz, shAlt] = q.get("sky").split(",").map(Number);
+    if (!(isFinite(shLat) && isFinite(shLon) && isFinite(shJd))) return;
+    const nm = (q.get("n") || "a friend's spot").slice(0, 40);
+    skyLoc = { name: nm, lat: shLat, lon: shLon }; // session only — doesn't overwrite the visitor's saved location
+    const offDays = shJd - jdNow();
+    skyDayOffset = Math.trunc(offDays);
+    skyMinOffset = Math.round((offDays - Math.trunc(offDays)) * 1440);
+    const intro = document.getElementById("intro"); if (intro) intro.remove();
+    openTonight(true); // keepTime — don't reset the shared moment
+    svEnterFromTonight();
+    if (isFinite(shAz)) { svAzT = svAz = shAz; }
+    if (isFinite(shAlt)) { svAltT = svAlt = shAlt; }
+    showToast(`🌌 This is the sky over ${nm} — exactly as your friend saw it. Drag to look around!`);
+  } catch (e) { console.error("shared-view link:", e); }
+}, 300));
+
 const tonightEl = document.getElementById("tonight");
 let issTimer = null, issTrail = [];
 
@@ -4291,7 +4345,7 @@ function buildShareCard(opts) {
   x.fillText("Explore the universe →  cosmic-voyage.github.io", W / 2, H - 66);
   return cvs;
 }
-function shareCanvas(card, filename, title, text) { // Web Share API with a download fallback
+function shareCanvas(card, filename, title, text, link) { // Web Share API with a download fallback
   card.toBlob(async blob => {
     if (!blob) { showToast("Couldn't build the card 😕"); return; }
     const file = new File([blob], filename, { type: "image/png" });
@@ -4302,6 +4356,7 @@ function shareCanvas(card, filename, title, text) { // Web Share API with a down
     const a = document.createElement("a"); a.href = url; a.download = filename;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 4000);
+    if (link && navigator.clipboard) { try { await navigator.clipboard.writeText(link); showToast("📥 Card saved + view link copied — paste it to a friend!"); return; } catch (e) {} }
     showToast("📥 Saved your card — share it anywhere!");
   }, "image/png");
 }
