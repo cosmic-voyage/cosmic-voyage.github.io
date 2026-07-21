@@ -443,7 +443,15 @@
   #sv-info .big { font-size: 16px; font-weight: 700; color: var(--ink); }
   #sv-info .sub { color: var(--dim); font-size: 12px; }
   #sv-info .none { color: var(--dim); }
-  #sv-bottom { position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%); z-index: 2; display: flex; gap: 10px; }
+  #sv-bottom {
+    position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%); z-index: 2;
+    display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+    width: max-content; max-width: 94vw; /* phones: wrap into rows instead of overflowing off-screen */
+  }
+  @media (max-width: 560px) {
+    #sv-hint { bottom: 150px; }
+    #sv-tour { bottom: 160px; }
+  }
   #sv-hint {
     position: absolute; bottom: 82px; left: 50%; transform: translateX(-50%); z-index: 2;
     font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim);
