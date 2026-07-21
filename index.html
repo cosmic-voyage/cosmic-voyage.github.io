@@ -4261,9 +4261,139 @@ function shareCanvas(card, filename, title, text, link) { // Web Share API with 
     showToast("📥 Saved your card — share it anywhere!");
   }, "image/png");
 }
+/* ---- Night Vista poster: an Instagram-story-sized (1080×1920) view of what the
+   night actually LOOKS like standing there — real sky over a mountain silhouette,
+   auto-aimed at the most photogenic thing up (Milky Way core → Moon → planets). ---- */
+function posterPlace() { // "Bishkek (Kyrgyzstan)" → KYRGYZSTAN; "Your location" → coords; else the name
+  const m = skyLoc.name.match(/\(([^)]+)\)/);
+  if (m) return m[1].toUpperCase();
+  if (skyLoc.name === "Your location") return null;
+  return skyLoc.name.toUpperCase();
+}
+const fmtCoords = () => `${Math.abs(skyLoc.lat).toFixed(2)}° ${skyLoc.lat >= 0 ? "N" : "S"}  ·  ${Math.abs(skyLoc.lon).toFixed(2)}° ${skyLoc.lon >= 0 ? "E" : "W"}`;
+function vistaJd() { // the poster is of the NIGHT — if it's daytime at the current sim time, jump to this evening
+  let jd = skyJd();
+  if (bodyAltAz("Sun", jd, skyLoc.lat, skyLoc.lon).alt > -12) {
+    for (let m = 10; m <= 1440; m += 10) {
+      if (bodyAltAz("Sun", jd + m / 1440, skyLoc.lat, skyLoc.lon).alt < -12) { jd += m / 1440; break; }
+    }
+  }
+  return jd;
+}
+function vistaAim(jd) { // most photogenic direction that's up
+  const lat = skyLoc.lat, lon = skyLoc.lon;
+  const core = eqToHoriz(MW_CORE.ra, MW_CORE.dec, jd, lat, lon);
+  if (core.alt > 8) return { az: core.az, what: "The Milky Way core glows over your horizon" };
+  const moon = bodyAltAz("Moon", jd, lat, lon);
+  if (moon.alt > 10) return { az: moon.az, what: `A ${moonPhaseName(jd).toLowerCase()} rides the sky` };
+  for (const p of ["Venus", "Jupiter", "Saturn", "Mars"]) {
+    const h = bodyAltAz(p, jd, lat, lon);
+    if (h.alt > 12) return { az: h.az, what: p + " shines among the stars" };
+  }
+  return { az: 180, what: "A sky full of stars above you" };
+}
+function buildVistaPoster() {
+  const W = 1080, H = 1920, jd = vistaJd(), lat = skyLoc.lat, lon = skyLoc.lon;
+  const aim = vistaAim(jd), azC = aim.az, altC = 24, fovV = 80;
+  const cvs = document.createElement("canvas"); cvs.width = W; cvs.height = H;
+  const x = cvs.getContext("2d");
+  // camera basis + projection (same math as the fullscreen view)
+  const Ld = dirVec(azC, altC);
+  let Rt = cross3(Ld, [0, 0, 1]); Rt = norm3(Rt);
+  const Up = norm3(cross3(Rt, Ld));
+  const f = (H / 2) / Math.tan(fovV / 2 * D2R);
+  const project = (az, alt) => {
+    const v = dirVec(az, alt), d = dot3(v, Ld);
+    if (d < 0.05) return null;
+    return [W / 2 + dot3(v, Rt) / d * f, H / 2 - dot3(v, Up) / d * f];
+  };
+  const sunAlt = bodyAltAz("Sun", jd, lat, lon).alt;
+  const sky = skyColors(sunAlt);
+  const g = x.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, sky.top); g.addColorStop(1, sky.bot);
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+  // idealized dark-site sky for the poster, whatever the slider says
+  const savedBortle = skyBortle; skyBortle = 2;
+  const savedAz = svAz, savedAlt = svAlt; svAz = azC; svAlt = altC; // drawConstArt rim-culls from these
+  try {
+    drawMilkyWay(x, (ra, dec) => {
+      const h = eqToHoriz(ra, dec, jd, lat, lon);
+      if (h.alt < -30) return null;
+      if (dot3(dirVec(h.az, h.alt), Ld) < 0.53) return null;
+      return project(h.az, h.alt);
+    }, false, 1);
+    if (svArtOn) drawConstArt(x, project, jd, false);
+    // constellation lines, faint
+    x.strokeStyle = "rgba(120,175,255,.20)"; x.lineWidth = 1.6;
+    for (const [a, b] of CONST_LINES) {
+      const pa = STAR_POS[a], pb = STAR_POS[b]; if (!pa || !pb) continue;
+      const ha = eqToHoriz(pa[0], pa[1], jd, lat, lon), hb = eqToHoriz(pb[0], pb[1], jd, lat, lon);
+      if (ha.alt < -2 || hb.alt < -2) continue;
+      const A = project(ha.az, ha.alt), B = project(hb.az, hb.alt); if (!A || !B) continue;
+      x.beginPath(); x.moveTo(A[0], A[1]); x.lineTo(B[0], B[1]); x.stroke();
+    }
+    // stars
+    for (const [name, ra, dec, mag] of STARS) {
+      const h = eqToHoriz(ra, dec, jd, lat, lon); if (h.alt < 0) continue;
+      const p = project(h.az, h.alt); if (!p) continue;
+      const ba = bortleStarAlpha(mag); if (ba <= 0) continue;
+      x.globalAlpha = 0.95 * ba; x.fillStyle = "#e6edff";
+      x.beginPath(); x.arc(p[0], p[1], Math.max(1.2, 4.2 - mag * 0.8), 0, 7); x.fill();
+    }
+    x.globalAlpha = 1;
+    // planets + Moon, subtle labels
+    x.textAlign = "center"; x.font = "600 26px sans-serif";
+    for (const pl of ["Mercury", "Venus", "Mars", "Jupiter", "Saturn"]) {
+      const h = bodyAltAz(pl, jd, lat, lon); if (h.alt < 2) continue;
+      const p = project(h.az, h.alt); if (!p) continue;
+      x.fillStyle = PLANET_COL[pl]; x.beginPath(); x.arc(p[0], p[1], 7, 0, 7); x.fill();
+      x.globalAlpha = .75; x.fillStyle = "#fff"; x.fillText(pl, p[0], p[1] - 18); x.globalAlpha = 1;
+    }
+    const hm = bodyAltAz("Moon", jd, lat, lon);
+    if (hm.alt > 0) { const p = project(hm.az, hm.alt); if (p) miniMoon(x, p[0], p[1], 16, jd); }
+  } finally {
+    skyBortle = savedBortle; svAz = savedAz; svAlt = savedAlt;
+  }
+  // mountain silhouette along the true horizon — two ridges, seeded by location
+  const hz = project(azC, 0), yH = hz ? hz[1] : H * 0.76;
+  let seed = Math.abs(Math.round(lat * 100) * 7919 + Math.round(lon * 100)) || 1;
+  const rnd = () => (seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+  const ridge = (baseY, rough, col) => {
+    x.fillStyle = col; x.beginPath(); x.moveTo(0, H);
+    let y = baseY + (rnd() - 0.5) * rough;
+    x.lineTo(0, y);
+    for (let px = 0; px <= W; px += 36) {
+      y = Math.max(baseY - rough, Math.min(baseY + rough * 0.3, y + (rnd() - 0.52) * rough * 0.55));
+      x.lineTo(px, y);
+    }
+    x.lineTo(W, H); x.closePath(); x.fill();
+  };
+  ridge(yH + 6, 110, "#0b101f");  // far ridge, faintly blue
+  ridge(yH + 60, 150, "#04060c"); // near ridge, near-black
+  // typography block in the dark foreground
+  const place = posterPlace();
+  const dstr = new Date((jd - 2440587.5) * 864e5).toLocaleDateString("en-US", { day: "numeric", month: "long", year: "numeric" });
+  const ty = Math.max(yH + 190, H - 330);
+  x.textAlign = "center";
+  x.fillStyle = "#8fa2c8"; x.font = "600 30px sans-serif";
+  x.fillText((place ? "T O N I G H T   O V E R" : "T H E   N I G H T   S K Y"), W / 2, ty);
+  x.fillStyle = "#f2f6ff"; x.font = "700 86px Georgia, serif";
+  x.fillText(place || fmtCoords(), W / 2, ty + 96);
+  x.strokeStyle = "rgba(125,211,252,.4)"; x.lineWidth = 2;
+  x.beginPath(); x.moveTo(W / 2 - 130, ty + 140); x.lineTo(W / 2 + 130, ty + 140); x.stroke();
+  x.fillStyle = "#c9d6ef"; x.font = "400 32px Georgia, serif";
+  x.fillText(place ? dstr + "  ·  " + fmtCoords() : dstr, W / 2, ty + 192);
+  x.fillStyle = "#8fa2c8"; x.font = "italic 400 30px Georgia, serif";
+  x.fillText(aim.what, W / 2, ty + 244);
+  x.fillStyle = "rgba(143,162,200,.75)"; x.font = "500 24px sans-serif";
+  x.fillText("✦ cosmic-voyage.github.io", W / 2, H - 42);
+  return cvs;
+}
 function shareSky() {
-  let card; try { card = buildShareCard(); } catch (e) { showToast("Couldn't build the card 😕"); return; }
-  shareCanvas(card, "tonights-sky.png", "Tonight's Sky", `Tonight's sky over ${skyLoc.name} 🌌 cosmic-voyage.github.io`);
+  let card; try { card = buildVistaPoster(); } catch (e) { showToast("Couldn't build the poster 😕"); return; }
+  const place = posterPlace();
+  shareCanvas(card, "tonights-sky.png", "Tonight's Sky",
+    `Tonight's sky over ${place ? place.charAt(0) + place.slice(1).toLowerCase() : "me"} 🌌 cosmic-voyage.github.io`);
 }
 const SEASONS = [ // by month index; northern-sky flavoured, with a nod south
   { m: [11, 0, 1], obj: "Orion the Hunter", text: "Winter's showpiece: <b>Orion</b> stands high in the evening — his three-star Belt points down-left to Sirius, the brightest star in the sky." },
