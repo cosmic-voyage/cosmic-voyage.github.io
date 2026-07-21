@@ -3595,7 +3595,7 @@ function artImg(file) {
   }
   return artImgs[file];
 }
-function drawConstArt(x, project, jdv) {
+function drawConstArt(x, project, jdv, day) {
   const Ld = dirVec(svAz, svAlt), rimDot = Math.cos(75 * D2R);
   for (const name in CONST_ART) {
     const art = CONST_ART[name];
@@ -3634,7 +3634,7 @@ function drawConstArt(x, project, jdv) {
     x.save();
     x.transform(a, b, c, d, e, f); // composes with the dpr baseline transform
     x.globalCompositeOperation = "screen"; // additive: the art's black background vanishes, only the figure glows
-    x.globalAlpha = 0.34;
+    x.globalAlpha = day ? 0.12 : 0.34; // extra faint over the bright daytime sky — "here's the hidden constellation"
     try { x.drawImage(img, 0, 0); } catch (err) {}
     x.restore();
   }
@@ -3716,7 +3716,7 @@ function drawSV() {
     x.fillText(CARD8[i], p[0], p[1]);
   }
   // ghostly constellation figures (under the lines), night only
-  if (!day && svArtOn) drawConstArt(x, project, jdv);
+  if (svArtOn) drawConstArt(x, project, jdv, day);
   // constellation lines (under the stars) — both endpoints must be above the horizon
   const starAA = {};
   for (const b of scene.list) if (b.kind === "star") starAA[b.name] = b;
